@@ -7,9 +7,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Faltan las variables de entorno de Supabase en .env.local');
 }
 
-// Creamos un cliente único e inmutable de Supabase para toda la app
+// Creamos un cliente único e inmutable de Supabase para toda la app, con persistencia para guardar sesión
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false, // Desactivamos persistencia para que sea hiperligero y no guarde cookies basura
+    persistSession: true, // Habilitamos persistencia para mantener la sesión iniciada
   },
 });
