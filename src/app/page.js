@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase'; // Conexión a tu BD
 
 import { 
-  Globe, Users, Activity, ShieldAlert, Search,
-  PlusCircle, Languages, RefreshCw, Package, Cat, MapPin, AlertTriangle, ExternalLink, Building2, Phone, Stethoscope, X
+  Globe, Activity, Search, PlusCircle, RefreshCw, Package, MapPin, AlertTriangle, ExternalLink, Phone, Languages, X
 } from 'lucide-react';
 
 const diccionario = {
@@ -14,31 +13,19 @@ const diccionario = {
     stats: { localizados: "Localizados", ayuda: "Ayuda (Tons)", hospitales: "Hospitales", alertas: "Peligros" },
     menus: [
       { id: 'directorios_web', nombre: 'Enlaces y Sitios Web', icono: Globe, habilitado: true },
-      { id: 'personas_desaparecidas', nombre: 'Personas Desaparecidas', icono: Users, habilitado: false },
-      { id: 'personas_en_hospitales', nombre: 'Pacientes / N.N.', icono: Stethoscope, habilitado: false },
-      { id: 'necesidades_hospitales', nombre: 'Necesidades Hospitales', icono: Building2, habilitado: false },
       { id: 'centros_acopio', nombre: 'Centros de Acopio', icono: MapPin, habilitado: false },
-      { id: 'ayudas_humanitarias', nombre: 'Cargamentos de Ayuda', icono: Package, habilitado: false },
-      { id: 'mascotas_emergencia', nombre: 'Mascotas', icono: Cat, habilitado: false },
       { id: 'contactos_recursos', nombre: 'Contactos y Rescatistas', icono: Phone, habilitado: false },
       { id: 'reportes_sismos', nombre: 'Sismos y Réplicas', icono: Activity, habilitado: false },
-      { id: 'reportes_peligro', nombre: 'Alertas de Peligro', icono: ShieldAlert, habilitado: false },
     ]
   },
   en: {
     titulo: "Venezuela", buscar: "Search city, supply, name...", reportar: "Report Data", refrescar: "Refresh",
-    stats: { localizados: "Located", ayuda: "Aid (Tons)", hospitales: "Hospitals", alertas: "Dangers" },
+    stats: { localizados: "Located", ayuda: "Aid (Tons)", hospitals: "Hospitals", alertas: "Dangers" },
     menus: [
       { id: 'directorios_web', nombre: 'Links & Websites', icono: Globe, habilitado: true },
-      { id: 'personas_desaparecidas', nombre: 'Missing Persons', icono: Users, habilitado: false },
-      { id: 'personas_en_hospitales', nombre: 'Patients / Jane Does', icono: Stethoscope, habilitado: false },
-      { id: 'necesidades_hospitales', nombre: 'Hospital Needs', icono: Building2, habilitado: false },
       { id: 'centros_acopio', nombre: 'Collection Centers', icono: MapPin, habilitado: false },
-      { id: 'ayudas_humanitarias', nombre: 'Aid Shipments', icono: Package, habilitado: false },
-      { id: 'mascotas_emergencia', nombre: 'Pets', icono: Cat, habilitado: false },
       { id: 'contactos_recursos', nombre: 'Contacts & Rescuers', icono: Phone, habilitado: false },
-      { id: 'reportes_sismos', fontName: 'Quakes & Aftershocks', icono: Activity, habilitado: false },
-      { id: 'reportes_peligro', nombre: 'Danger Alerts', icono: ShieldAlert, habilitado: false },
+      { id: 'reportes_sismos', nombre: 'Quakes & Aftershocks', icono: Activity, habilitado: false },
     ]
   }
 };
@@ -81,8 +68,24 @@ export default function Home() {
   }, [menuActivo]);
 
   useEffect(() => {
-    cargarDatos();
-  }, [cargarDatos]); // Agregada la dependencia correcta para resolver el error del linter
+    const temporizador = setTimeout(() => {
+      cargarDatos();
+    }, 0);
+
+    return () => clearTimeout(temporizador);
+  }, [cargarDatos]);
+
+  // --- LÓGICA DEL BUSCADOR EN TIEMPO REAL ---
+  const datosFiltrados = datos.filter((item) => {
+    const término = busqueda.toLowerCase().trim();
+    if (!término) return true;
+
+    const titulo = (item.titulo || item.nombre || '').toLowerCase();
+    const descripcion = (item.descripcion || item.detalles || '').toLowerCase();
+    const categoria = (item.categoria || '').toLowerCase();
+
+    return titulo.includes(término) || descripcion.includes(término) || categoria.includes(término);
+  });
 
   // --- ENVIAR REPORTE A SUPABASE ---
   const manejarEnvioReporte = async (e) => {
@@ -97,14 +100,14 @@ export default function Home() {
 
     try {
       const { error } = await supabase
-        .from('directorios_web') // Guardamos en la tabla de enlaces por ahora
+        .from('directorios_web') 
         .insert([
           {
             titulo: formulario.titulo,
             url: formulario.url,
             descripcion: formulario.descripcion,
             categoria: formulario.categoria || 'General',
-            aprobado: false // Obliga a revisión previa antes de mostrarse públicamente
+            aprobado: false 
           }
         ]);
 
@@ -113,7 +116,6 @@ export default function Home() {
       setNotificacion({ tipo: 'exito', texto: '¡Reporte recibido con éxito! Será revisado por los moderadores a la brevedad.' });
       setFormulario({ titulo: '', url: '', descripcion: '', categoria: '' });
       
-      // Cierra el modal automáticamente después de 3 segundos de éxito
       setTimeout(() => {
         setModalAbierto(false);
         setNotificacion({ tipo: '', texto: '' });
@@ -128,10 +130,10 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#09090b] text-zinc-100 selection:bg-cyan-500 selection:text-black">
+    <main className="min-h-screen bg-[#09090b] text-zinc-100 antialiased selection:bg-cyan-500 selection:text-black">
       
       {/* HEADER SUPERIOR */}
-      <header className="sticky top-0 z-40 backdrop-blur-md bg-[#09090b]/80 border-b border-zinc-900 px-4 lg:px-6 py-4 w-full flex items-center justify-between shadow-xl">
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-[#09090b]/80 border-b border-zinc-900 px-4 lg:px-6 py-4 w-full flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-3">
           <div className="relative flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -166,7 +168,7 @@ export default function Home() {
         {/* BARRA DE ESTADÍSTICAS */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
-            { label: t.stats.localizados, valor: "0", icon: Users, color: "text-emerald-400" },
+            { label: t.stats.localizados, valor: "0", icon: Globe, color: "text-emerald-400" },
             { label: t.stats.ayuda, valor: "0", icon: Package, color: "text-cyan-400" },
             { label: t.stats.hospitales, valor: "0", icon: Activity, color: "text-red-400" },
             { label: t.stats.alertas, valor: "0", icon: AlertTriangle, color: "text-amber-400" },
@@ -201,7 +203,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* MENÚ */}
+            {/* MENÚ FILTRADO */}
             <nav className="grid grid-cols-1 lg:flex lg:flex-col gap-2 w-full">
               {t.menus.map((m) => {
                 const Icono = m.icono;
@@ -229,6 +231,7 @@ export default function Home() {
               })}
             </nav>
 
+            {/* BOTÓN REPORTAR ESCRITORIO */}
             <button 
               onClick={() => setModalAbierto(true)}
               className="hidden lg:flex w-full bg-linear-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-zinc-950 font-extrabold py-4 rounded-xl transition-all duration-300 items-center justify-center gap-2.5 shadow-[0_4px_20px_rgba(34,211,238,0.15)] active:scale-[0.99]"
@@ -240,16 +243,16 @@ export default function Home() {
 
           {/* CONTENIDO PRINCIPAL */}
           <section className="lg:col-span-9">
-            <div className="bg-zinc-900/10 border border-zinc-900/80 rounded-4xl p-5 lg:p-8 min-h-[55vh] lg:min-h-[65vh] shadow-xl backdrop-blur-sm overflow-hidden">
+            <div className="bg-zinc-900/10 border border-zinc-900/80 rounded-3xl lg:rounded-4xl p-5 lg:p-8 min-h-[55vh] lg:min-h-[65vh] shadow-xl backdrop-blur-sm overflow-hidden">
               
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 lg:mb-8 pb-4 lg:pb-5 border-b border-zinc-900 overflow-hidden">
                 <h2 className="text-xl lg:text-4xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
                   <span className="h-6 lg:h-8 w-1 bg-cyan-500 rounded-full inline-block"></span>
-                  {t.menus.find(m => m.id === menuActivo)?.nombre}
+                  {t.menus.find(m => m.id === menuActivo)?.nombre || "Categoría"}
                 </h2>
                 {!cargando && (
                   <span className="text-[11px] text-zinc-500 font-mono bg-zinc-900/50 border border-zinc-800/60 px-3 py-1.5 rounded-lg w-fit">
-                    {datos.length} registros verificados
+                    {datosFiltrados.length} resultados
                   </span>
                 )}
               </div>
@@ -259,26 +262,39 @@ export default function Home() {
                   <div className="w-10 h-10 border-4 border-zinc-800 border-t-cyan-500 rounded-full animate-spin mb-4"></div>
                   <p className="text-zinc-400 text-xs lg:text-sm font-medium tracking-wide">Consultando base de datos...</p>
                 </div>
-              ) : datos.length === 0 ? (
+              ) : datosFiltrados.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 border border-dashed border-zinc-800/60 rounded-2xl bg-zinc-950/20 px-4 text-center">
                   <AlertTriangle className="h-7 w-7 text-zinc-600 mb-3" />
-                  <p className="text-zinc-500 font-medium text-sm">No hay registros aprobados en esta categoría aún.</p>
+                  <p className="text-zinc-500 font-medium text-sm">
+                    {busqueda ? 'No se encontraron resultados para tu búsqueda.' : 'No hay registros aprobados en esta categoría aún.'}
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
-                  {datos.map((item) => (
+                  {datosFiltrados.map((item) => (
                     <div key={item.id} className="bg-zinc-900/20 border border-zinc-900 hover:border-zinc-800/80 hover:bg-zinc-900/40 transition-all duration-300 rounded-2xl p-5 flex flex-col justify-between shadow-sm group overflow-hidden">
                       <div>
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <h3 className="font-bold text-white text-[15px] lg:text-base leading-snug group-hover:text-cyan-400 transition-colors duration-300">
-                            {item.titulo || item.nombre || "Registro sin título"}
-                          </h3>
+                        {/* CONTENEDOR HEADER DE LA TARJETA CON FLEXBOX CORREGIDO */}
+                        <div className="flex items-center justify-between gap-3 mb-3 w-full overflow-hidden">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {/* CÍRCULO VERDE DE VERIFICADO */}
+                            <span className="relative flex h-2 w-2 shrink-0">
+                              <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            {/* TÍTULO CON CORTE CONTROLADO */}
+                            <h3 className="font-bold text-white text-[15px] lg:text-base leading-none group-hover:text-cyan-400 transition-colors duration-300 truncate">
+                              {item.titulo || item.nombre || "Registro sin título"}
+                            </h3>
+                          </div>
+                          
                           {item.categoria && (
-                            <span className="text-[9px] lg:text-[10px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-400/10 border border-cyan-500/10 px-2.5 py-1 rounded-md whitespace-nowrap">
+                            <span className="text-[9px] lg:text-[10px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-400/10 border border-cyan-500/10 px-2.5 py-1 rounded-md shrink-0 whitespace-nowrap">
                               {item.categoria}
                             </span>
                           )}
                         </div>
+                        
                         <p className="text-zinc-400 text-xs lg:text-sm leading-relaxed mb-5 line-clamp-3">
                           {item.descripcion || item.detalles || "Sin descripción disponible."}
                         </p>
@@ -306,7 +322,7 @@ export default function Home() {
       </div>
 
       {/* BOTÓN FLOTANTE MÓVIL */}
-      <div className="lg:hidden fixed bottom-6 left-5 right-5 z-30">
+      <div className="lg:hidden fixed bottom-6 left-5 right-5 z-50">
         <button 
           onClick={() => setModalAbierto(true)}
           className="w-full bg-linear-to-r from-cyan-500 to-teal-500 text-zinc-950 font-black py-4 rounded-xl shadow-[0_8px_30px_rgba(34,211,238,0.25)] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
@@ -316,12 +332,11 @@ export default function Home() {
         </button>
       </div>
 
-      {/* --- MODAL DE REPORTAR DATOS (PÁGINAS WEB) --- */}
+      {/* --- MODAL DE REPORTAR DATOS --- */}
       {modalAbierto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
           <div className="bg-[#09090b] border border-zinc-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
             
-            {/* Encabezado del modal */}
             <div className="px-6 py-4 border-b border-zinc-900 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Globe className="h-5 w-5 text-cyan-400" />
@@ -335,10 +350,8 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Formulario */}
             <form onSubmit={manejarEnvioReporte} className="p-6 space-y-4 overflow-y-auto">
               
-              {/* Notificaciones de Éxito / Error */}
               {notificacion.texto && (
                 <div className={`p-4 rounded-xl border text-xs font-semibold flex items-start gap-2.5 ${
                   notificacion.tipo === 'exito' 
@@ -428,8 +441,6 @@ export default function Home() {
       )}
 
       <style dangerouslySetInnerHTML={{__html: `
-        .scrollbar-none::-webkit-scrollbar { display: none; }
-        .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
