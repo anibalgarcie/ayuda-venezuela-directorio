@@ -271,19 +271,19 @@ export default function Home() {
                               <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
-                            <h3 className="font-bold text-white text-[19px] lg:text-[20px] leading-snug group-hover:text-cyan-400 transition-colors duration-300 truncate">
+                            <h3 className="font-bold text-white text-[17px] lg:text-[19px] leading-snug group-hover:text-cyan-400 transition-colors duration-300 truncate">
                               {item.titulo || item.nombre || "Registro sin título"}
                             </h3>
                           </div>
                           
                           {item.categoria && (
-                            <span className="text-[12px] lg:text-[11px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-400/10 border border-cyan-500/10 px-2.5 py-1 rounded-md shrink-0 whitespace-nowrap">
+                            <span className="text-[10px] lg:text-[11px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-400/10 border border-cyan-500/10 px-2.5 py-1 rounded-md shrink-0 whitespace-nowrap">
                               {item.categoria}
                             </span>
                           )}
                         </div>
                         
-                        <p className="text-zinc-400 text-[15px] lg:text-[14px] leading-relaxed mb-5 line-clamp-3">
+                        <p className="text-zinc-400 text-[13px] lg:text-[14px] leading-relaxed mb-5 line-clamp-3">
                           {item.descripcion || item.detalles || "Sin descripción disponible."}
                         </p>
                       </div>
