@@ -205,7 +205,7 @@ export default function Home() {
                     onClick={() => {
                       if (m.habilitado) setMenuActivo(m.id);
                     }}
-                    className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-[16px] lg:text-[15px] font-semibold transition-all duration-200 text-left justify-start relative ${
+                    className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-[16px] lg:text-[17px] font-semibold transition-all duration-200 text-left justify-start relative ${
                       !m.habilitado
                         ? 'opacity-40 bg-zinc-950/10 border-zinc-950/50 text-zinc-600 cursor-not-allowed'
                         : activo 
@@ -235,12 +235,12 @@ export default function Home() {
             <div className="bg-zinc-900/10 border border-zinc-900/80 rounded-3xl lg:rounded-4xl p-5 lg:p-8 min-h-[55vh] lg:min-h-[65vh] shadow-xl backdrop-blur-sm overflow-hidden">
               
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 lg:mb-8 pb-4 lg:pb-5 border-b border-zinc-900 overflow-hidden">
-                <h2 className="text-xl lg:text-4xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+                <h2 className="text-2xl lg:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
                   <span className="h-6 lg:h-8 w-1 bg-cyan-500 rounded-full inline-block"></span>
                   {t.menus.find(m => m.id === menuActivo)?.nombre || "Categoría"}
                 </h2>
                 {!cargando && (
-                  <span className="text-[15px] text-zinc-500 font-mono bg-zinc-900/50 border border-zinc-800/60 px-3 py-1.5 rounded-lg w-fit">
+                  <span className="text-[13px] lg:text-[15px] text-zinc-500 font-mono bg-zinc-900/50 border border-zinc-800/60 px-3 py-1.5 rounded-lg w-fit">
                     {datosFiltrados.length} resultados
                   </span>
                 )}
@@ -264,22 +264,26 @@ export default function Home() {
                     <div key={item.id} className="bg-zinc-900/20 border border-zinc-900 hover:border-zinc-800/80 hover:bg-zinc-900/40 transition-all duration-300 rounded-2xl p-5 flex flex-col justify-between shadow-sm group overflow-hidden">
                       <div>
                         {/* CONTENEDOR HEADER DE LA TARJETA */}
-                        <div className="flex items-center justify-between gap-3 mb-3 w-full overflow-hidden">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="flex flex-col gap-2 mb-3 w-full">
+                          {/* El título ahora está arriba con todo el ancho libre */}
+                          <div className="flex items-center gap-2 min-w-0 w-full overflow-hidden">
                             {/* CÍRCULO VERDE DE VERIFICADO */}
                             <span className="relative flex h-2 w-2 shrink-0">
                               <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
-                            <h3 className="font-bold text-white text-[17px] lg:text-[19px] leading-snug group-hover:text-cyan-400 transition-colors duration-300 truncate">
+                            <h3 className="font-bold text-white text-[18px] lg:text-[19px] leading-snug group-hover:text-cyan-400 transition-colors duration-300 truncate">
                               {item.titulo || item.nombre || "Registro sin título"}
                             </h3>
                           </div>
-                          
+
+                          {/* La categoría ahora se renderiza perfectamente aquí abajo */}
                           {item.categoria && (
-                            <span className="text-[10px] lg:text-[11px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-400/10 border border-cyan-500/10 px-2.5 py-1 rounded-md shrink-0 whitespace-nowrap">
-                              {item.categoria}
-                            </span>
+                            <div className="w-fit">
+                              <span className="text-[11px] lg:text-[11px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-400/10 border border-cyan-500/10 px-2.5 py-1 rounded-md whitespace-nowrap">
+                                {item.categoria}
+                              </span>
+                            </div>
                           )}
                         </div>
                         
