@@ -129,6 +129,13 @@ export default function Home() {
     }
   };
 
+  // Registro de analíticas: visitas al portal
+  useEffect(() => {
+    supabase.from('analytics_views').insert([{ path: '/' }]).then(({ error }) => {
+      if (error) console.error('Error tracking page view:', error);
+    });
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#09090b] text-zinc-100 antialiased selection:bg-cyan-500 selection:text-black">
       
@@ -305,6 +312,11 @@ export default function Home() {
                           href={item.url} 
                           target="_blank" 
                           rel="noopener noreferrer"
+                          onClick={() => {
+                            supabase.rpc('increment_clicks', { row_id: item.id }).then(({ error }) => {
+                              if (error) console.error('Error incrementing clicks:', error);
+                            });
+                          }}
                           className="w-full flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs lg:text-sm font-semibold py-2.5 lg:py-3 rounded-xl transition-all duration-300 hover:bg-zinc-800 hover:text-white hover:border-zinc-700 active:scale-[0.98]"
                         >
                           <span>Visitar Enlace</span> 
