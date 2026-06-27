@@ -129,12 +129,14 @@ export default function Home() {
     }
   };
 
-  // Registro de analíticas: visitas al portal
+  // DESACTIVADO TEMPORALMENTE: Evita el error PGRST205 porque la tabla 'analytics_views' no existe todavía.
+  /*
   useEffect(() => {
     supabase.from('analytics_views').insert([{ path: '/' }]).then(({ error }) => {
       if (error) console.error('Error tracking page view:', error);
     });
   }, []);
+  */
 
   return (
     <main className="min-h-screen bg-[#09090b] text-zinc-100 antialiased selection:bg-cyan-500 selection:text-black">
@@ -172,27 +174,6 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8 space-y-6 lg:space-y-8">
         
-        {/* BARRA DE ESTADÍSTICAS OCULTADA TEMPORALMENTE
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-          {[
-            { label: t.stats.localizados, valor: "0", icon: Globe, color: "text-emerald-400" },
-            { label: t.stats.ayuda, valor: "0", icon: Package, color: "text-cyan-400" },
-            { label: t.stats.hospitales, valor: "0", icon: Activity, color: "text-red-400" },
-            { label: t.stats.alertas, valor: "0", icon: AlertTriangle, color: "text-amber-400" },
-          ].map((stat, i) => (
-            <div key={i} className="bg-zinc-900/30 border border-zinc-900 p-3.5 lg:p-5 rounded-2xl flex items-center gap-3 lg:gap-4 shadow-sm backdrop-blur-sm overflow-hidden">
-              <div className={`p-2.5 lg:p-3 rounded-xl bg-zinc-950 border border-zinc-800 ${stat.color} shadow-inner`}>
-                <stat.icon className="h-5 w-5 lg:h-6 lg:w-6" />
-              </div>
-              <div>
-                <p className="text-[10px] lg:text-[11px] font-semibold text-zinc-500 uppercase tracking-widest">{stat.label}</p>
-                <p className="text-xl lg:text-3xl font-black text-white tracking-tight mt-0.5">{stat.valor}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        */}
-
         {/* REJILLA PRINCIPAL */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           
@@ -224,7 +205,7 @@ export default function Home() {
                     onClick={() => {
                       if (m.habilitado) setMenuActivo(m.id);
                     }}
-                    className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-[13px] lg:text-[15px] font-semibold transition-all duration-200 text-left justify-start relative ${
+                    className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-[16px] lg:text-[15px] font-semibold transition-all duration-200 text-left justify-start relative ${
                       !m.habilitado
                         ? 'opacity-40 bg-zinc-950/10 border-zinc-950/50 text-zinc-600 cursor-not-allowed'
                         : activo 
@@ -259,7 +240,7 @@ export default function Home() {
                   {t.menus.find(m => m.id === menuActivo)?.nombre || "Categoría"}
                 </h2>
                 {!cargando && (
-                  <span className="text-[11px] text-zinc-500 font-mono bg-zinc-900/50 border border-zinc-800/60 px-3 py-1.5 rounded-lg w-fit">
+                  <span className="text-[15px] text-zinc-500 font-mono bg-zinc-900/50 border border-zinc-800/60 px-3 py-1.5 rounded-lg w-fit">
                     {datosFiltrados.length} resultados
                   </span>
                 )}
@@ -278,11 +259,11 @@ export default function Home() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-5">
                   {datosFiltrados.map((item) => (
                     <div key={item.id} className="bg-zinc-900/20 border border-zinc-900 hover:border-zinc-800/80 hover:bg-zinc-900/40 transition-all duration-300 rounded-2xl p-5 flex flex-col justify-between shadow-sm group overflow-hidden">
                       <div>
-                        {/* CONTENEDOR HEADER DE LA TARJETA CON FLEXBOX CORREGIDO */}
+                        {/* CONTENEDOR HEADER DE LA TARJETA */}
                         <div className="flex items-center justify-between gap-3 mb-3 w-full overflow-hidden">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             {/* CÍRCULO VERDE DE VERIFICADO */}
@@ -290,20 +271,19 @@ export default function Home() {
                               <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
-                            {/* TÍTULO CON CORTE CONTROLADO */}
-                            <h3 className="font-bold text-white text-[15px] lg:text-base leading-none group-hover:text-cyan-400 transition-colors duration-300 truncate">
+                            <h3 className="font-bold text-white text-[19px] lg:text-[20px] leading-snug group-hover:text-cyan-400 transition-colors duration-300 truncate">
                               {item.titulo || item.nombre || "Registro sin título"}
                             </h3>
                           </div>
                           
                           {item.categoria && (
-                            <span className="text-[9px] lg:text-[10px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-400/10 border border-cyan-500/10 px-2.5 py-1 rounded-md shrink-0 whitespace-nowrap">
+                            <span className="text-[12px] lg:text-[11px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-400/10 border border-cyan-500/10 px-2.5 py-1 rounded-md shrink-0 whitespace-nowrap">
                               {item.categoria}
                             </span>
                           )}
                         </div>
                         
-                        <p className="text-zinc-400 text-xs lg:text-sm leading-relaxed mb-5 line-clamp-3">
+                        <p className="text-zinc-400 text-[15px] lg:text-[14px] leading-relaxed mb-5 line-clamp-3">
                           {item.descripcion || item.detalles || "Sin descripción disponible."}
                         </p>
                       </div>
@@ -313,12 +293,7 @@ export default function Home() {
                           href={item.url} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          onClick={() => {
-                            supabase.rpc('increment_clicks', { row_id: item.id }).then(({ error }) => {
-                              if (error) console.error('Error incrementing clicks:', error);
-                            });
-                          }}
-                          className="w-full flex items-center justify-center gap-2 bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs lg:text-sm font-semibold py-2.5 lg:py-3 rounded-xl transition-all duration-300 hover:bg-zinc-800 hover:text-white hover:border-zinc-700 active:scale-[0.98]"
+                          className="w-full flex items-center text-[15px] justify-center gap-2 bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs lg:text-sm font-semibold py-2.5 lg:py-3 rounded-xl transition-all duration-300 hover:bg-zinc-800 hover:text-white hover:border-zinc-700 active:scale-[0.98]"
                         >
                           <span>Visitar Enlace</span> 
                           <ExternalLink className="h-4 w-4 text-zinc-500 group-hover:text-cyan-400 transition-colors" />
