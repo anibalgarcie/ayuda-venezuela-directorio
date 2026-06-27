@@ -25,7 +25,7 @@ const diccionario = {
       { id: 'directorios_web', nombre: 'Links & Websites', icono: Globe, habilitado: true },
       { id: 'centros_acopio', nombre: 'Collection Centers', icono: MapPin, habilitado: false },
       { id: 'contactos_recursos', nombre: 'Contacts & Rescuers', icono: Phone, habilitado: false },
-      { id: 'reportes_sismos', nombre: 'Quakes & Aftershocks', icono: Activity, habilitado: false },
+      { id: 'reportes_sismos', font: 'Quakes & Aftershocks', icono: Activity, habilitado: false },
     ]
   }
 };
@@ -172,7 +172,7 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8 space-y-6 lg:space-y-8">
         
-        {/* BARRA DE ESTADÍSTICAS */}
+        {/* BARRA DE ESTADÍSTICAS OCULTADA TEMPORALMENTE
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { label: t.stats.localizados, valor: "0", icon: Globe, color: "text-emerald-400" },
@@ -191,6 +191,7 @@ export default function Home() {
             </div>
           ))}
         </div>
+        */}
 
         {/* REJILLA PRINCIPAL */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
