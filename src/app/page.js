@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
   Globe, Activity, Search, MapPin, Phone, ExternalLink, X,
@@ -136,6 +136,35 @@ export default function Home() {
   const [enviando, setEnviando]         = useState(false);
   const [notificacion, setNotificacion] = useState({ tipo: '', texto: '' });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Hero animation refs
+  const heroBadgeRef = useRef(null);
+  const heroTitleRef = useRef(null);
+  const heroDescRef  = useRef(null);
+
+  useEffect(() => {
+    // Lazy-import gsap to keep it SSR-safe
+    import('gsap').then(({ gsap }) => {
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      tl.fromTo(
+        heroBadgeRef.current,
+        { opacity: 0, y: -12 },
+        { opacity: 1, y: 0, duration: 0.5 }
+      )
+      .fromTo(
+        heroTitleRef.current,
+        { opacity: 0, y: 28 },
+        { opacity: 1, y: 0, duration: 0.7 },
+        '-=0.25'
+      )
+      .fromTo(
+        heroDescRef.current,
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.6 },
+        '-=0.4'
+      );
+    });
+  }, []);
 
   const t = i18n[idioma];
 
@@ -365,14 +394,14 @@ export default function Home() {
 
       {/* ══ HERO ══ */}
       <section style={{ maxWidth: 1280, margin: '0 auto', padding: '48px 24px 32px' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', borderRadius: 9999, padding: '5px 14px', marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div ref={heroBadgeRef} style={{ opacity: 0, display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', borderRadius: 9999, padding: '5px 14px', marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34c759' }} />
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#86868b' }}>{t.banner}</span>
         </div>
-        <h1 style={{ fontSize: 'clamp(30px, 5vw, 52px)', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.03em', color: '#1d1d1f', marginBottom: 14, maxWidth: 680 }}>
+        <h1 ref={heroTitleRef} style={{ opacity: 0, fontSize: 'clamp(30px, 5vw, 52px)', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.03em', color: '#1d1d1f', marginBottom: 14, maxWidth: 680 }}>
           {t.subtitulo}
         </h1>
-        <p style={{ fontSize: 17, fontWeight: 500, color: '#86868b', maxWidth: 580, lineHeight: 1.6 }}>
+        <p ref={heroDescRef} style={{ opacity: 0, fontSize: 17, fontWeight: 500, color: '#86868b', maxWidth: 580, lineHeight: 1.6 }}>
           {t.descripcion}
         </p>
       </section>
