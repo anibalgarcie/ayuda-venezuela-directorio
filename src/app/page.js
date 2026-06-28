@@ -532,17 +532,19 @@ export default function Home() {
         <button
           onClick={() => setModalAbierto(true)}
           style={{
-            width: 50, height: 50, borderRadius: '50%',
-            background: 'rgba(0, 113, 227, 0.95)', backdropFilter: 'blur(10px)',
+            height: 50, padding: '0 20px', borderRadius: 9999,
+            background: 'rgba(0, 60, 195, 0.95)', backdropFilter: 'blur(10px)',
             color: '#fff', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 6px 20px rgba(0, 113, 227, 0.35)', transition: 'transform 0.15s ease'
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            boxShadow: '0 6px 20px rgba(0, 60, 195, 0.35)', transition: 'transform 0.15s ease',
+            fontFamily: 'inherit', fontSize: 15, fontWeight: 700,
           }}
           onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           title={t.reportar}
         >
-          <PlusCircle size={22} />
+          <PlusCircle size={20} />
+          {t.reportar}
         </button>
       </div>
 
