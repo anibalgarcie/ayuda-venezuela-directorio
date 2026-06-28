@@ -42,18 +42,18 @@ function getCategoryStyle(categoria) {
 /* ─── i18n ──────────────────────────────────────────────────────────── */
 const i18n = {
   es: {
-    titulo:        'Ayuda Venezuela',
+    titulo:        'Directorio Venezuela',
     subtitulo:     'Directorio de páginas web de emergencia',
     descripcion:   'Colección verificada de recursos web dedicados a la ayuda humanitaria, respuesta de emergencia y coordinación logística en Venezuela.',
     buscar:        'Buscar recursos, categorías, nombres...',
-    reportar:      'Reportar Enlace',
+    reportar:      'Agregar Web',
     refrescar:     'Actualizar',
     visitarEnlace: 'Visitar Sitio',
     resultados:    'resultados',
     cargando:      'Consultando base de datos...',
     sinResultados: 'No hay registros aprobados en esta categoría aún.',
     sinBusqueda:   'No se encontraron resultados para tu búsqueda.',
-    modalTitulo:   'Reportar un Enlace',
+    modalTitulo:   'Agregar Web',
     campoTitulo:   'Título del Sitio *',
     campoUrl:      'Dirección URL *',
     campoCategoria:'Categoría',
@@ -64,6 +64,7 @@ const i18n = {
     btnProcesando: 'Procesando...',
     exito:         '¡Reporte recibido! Será revisado por los moderadores.',
     errorCampos:   'Por favor, rellena todos los campos obligatorios.',
+    errorUrlInvalida: 'Por favor, ingresa un enlace válido (ej. https://ejemplo.com).',
     banner:        'Red de Recursos en Vivo',
     verified:      'Verificado',
     noDesc:        'Sin descripción disponible.',
@@ -79,18 +80,18 @@ const i18n = {
     ],
   },
   en: {
-    titulo:        'Ayuda Venezuela',
+    titulo:        'Venezuela Directory',
     subtitulo:     'Humanitarian Resource Directory',
     descripcion:   'A verified collection of web resources dedicated to humanitarian aid, emergency response, and logistics coordination in Venezuela.',
     buscar:        'Search resources, categories, names...',
-    reportar:      'Report Link',
+    reportar:      'Add Website',
     refrescar:     'Refresh',
     visitarEnlace: 'Visit Site',
     resultados:    'results',
     cargando:      'Querying database...',
     sinResultados: 'No approved records in this category yet.',
     sinBusqueda:   'No results found for your search.',
-    modalTitulo:   'Report a Link',
+    modalTitulo:   'Add Website',
     campoTitulo:   'Site Title *',
     campoUrl:      'URL Address *',
     campoCategoria:'Category',
@@ -101,6 +102,7 @@ const i18n = {
     btnProcesando: 'Processing...',
     exito:         'Report received! It will be reviewed by moderators.',
     errorCampos:   'Please fill in all required fields.',
+    errorUrlInvalida: 'Please enter a valid link (e.g., https://example.com).',
     banner:        'Live Resource Network',
     verified:      'Verified',
     noDesc:        'No description available.',
@@ -190,6 +192,18 @@ export default function Home() {
       setNotificacion({ tipo: 'error', texto: t.errorCampos });
       return;
     }
+
+    // URL Validation
+    try {
+      const parsedUrl = new URL(formulario.url);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        throw new Error();
+      }
+    } catch (_) {
+      setNotificacion({ tipo: 'error', texto: t.errorUrlInvalida });
+      return;
+    }
+
     setEnviando(true);
     setNotificacion({ tipo: '', texto: '' });
     try {
@@ -552,7 +566,7 @@ export default function Home() {
       <footer style={{ background: '#fff', borderTop: '1px solid rgba(0,0,0,0.06)', padding: '48px 24px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 40 }}>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: '#1d1d1f', marginBottom: 10 }}>Ayuda Venezuela</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#1d1d1f', marginBottom: 10 }}>Directorio Venezuela</div>
             <p style={{ fontSize: 13, fontWeight: 500, color: '#86868b', lineHeight: 1.6 }}>
               Centralizando la coordinación humanitaria y transparencia de emergencia para Venezuela.
             </p>
@@ -580,7 +594,7 @@ export default function Home() {
               <span style={{ fontSize: 13, fontWeight: 700, color: '#1d1d1f' }}>Todos los sistemas operacionales</span>
             </div>
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-              <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86868b' }}>© 2025 Ayuda Venezuela</p>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86868b' }}>© 2026 Directorio Venezuela</p>
             </div>
           </div>
         </div>
