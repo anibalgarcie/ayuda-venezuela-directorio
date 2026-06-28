@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { 
   LayoutDashboard, Globe, Users, LogOut, ShieldAlert,
-  Loader2, Menu, X, ArrowLeft
+  Loader2, Menu, X, ArrowLeft, Tags
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
@@ -95,6 +95,7 @@ export default function AdminLayout({ children }) {
   const enlaces = [
     { nombre: 'Dashboard', url: '/admin', icono: LayoutDashboard },
     { nombre: 'Directorio', url: '/admin/directories', icono: Globe },
+    { nombre: 'Categorías', url: '/admin/categories', icono: Tags },
   ];
 
   // Solo mostrar la sección de usuarios si es rol admin

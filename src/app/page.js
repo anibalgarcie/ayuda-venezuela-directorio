@@ -130,6 +130,7 @@ export default function Home() {
   const [idioma, setIdioma]             = useState('es');
   const [cargando, setCargando]         = useState(false);
   const [datos, setDatos]               = useState([]);
+  const [categoriasDB, setCategoriasDB] = useState([]);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [formulario, setFormulario]     = useState({ titulo: '', url: '', descripcion: '', categoria: '' });
   const [enviando, setEnviando]         = useState(false);
@@ -149,6 +150,12 @@ export default function Home() {
         .from(tabla).select('*').eq('aprobado', true).order('creado_en', { ascending: false });
       if (error) throw error;
       setDatos(data || []);
+
+      // Cargar categorías (silencioso si falla, para no romper la web pública si la tabla no existe aún)
+      supabase.from('categorias_web').select('*').order('nombre', { ascending: true })
+        .then(({ data: catData, error: catError }) => {
+          if (!catError && catData) setCategoriasDB(catData);
+        });
     } catch (err) {
       console.error(`Error en "${menuActivo}":`, err.message);
     } finally {
@@ -741,15 +748,37 @@ export default function Home() {
                 </div>
               ))}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86868b', marginBottom: 8 }}>{t.campoCategoria}</label>
-                  <input type="text" placeholder="Salud, Oficial..." value={formulario.categoria} onChange={(e) => setFormulario({ ...formulario, categoria: e.target.value })} style={{ width: '100%', background: '#F5F5F7', border: '1.5px solid #d2d2d7', borderRadius: 12, padding: '12px 16px', fontSize: 15, fontFamily: 'inherit', color: '#1d1d1f', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86868b', marginBottom: 8 }}>{t.campoAlcance}</label>
-                  <div style={{ background: '#F5F5F7', border: '1.5px solid #d2d2d7', borderRadius: 12, padding: '12px 16px', fontSize: 14, color: '#86868b', fontWeight: 500 }}>{t.alcanceValor}</div>
-                </div>
+              {/* Categoría */}
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86868b', marginBottom: 8 }}>{t.campoCategoria}</label>
+                {categoriasDB.length > 0 ? (
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      required
+                      value={formulario.categoria}
+                      onChange={(e) => setFormulario({ ...formulario, categoria: e.target.value })}
+                      style={{ width: '100%', background: '#F5F5F7', border: '1.5px solid #d2d2d7', borderRadius: 12, padding: '12px 36px 12px 16px', fontSize: 15, fontFamily: 'inherit', color: formulario.categoria ? '#1d1d1f' : '#86868b', outline: 'none', appearance: 'none', cursor: 'pointer' }}
+                      onFocus={(e) => { e.target.style.borderColor = '#003cc3'; e.target.style.boxShadow = '0 0 0 3px rgba(0,60,195,0.12)'; }}
+                      onBlur={(e)  => { e.target.style.borderColor = '#d2d2d7'; e.target.style.boxShadow = 'none'; }}
+                    >
+                      <option value="">Seleccionar categoría...</option>
+                      {categoriasDB.map((c) => (
+                        <option key={c.id} value={c.nombre}>{c.nombre}</option>
+                      ))}
+                    </select>
+                    <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#86868b' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+                    </div>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="Salud, Mapa, Donaciones..."
+                    value={formulario.categoria}
+                    onChange={(e) => setFormulario({ ...formulario, categoria: e.target.value })}
+                    style={{ width: '100%', background: '#F5F5F7', border: '1.5px solid #d2d2d7', borderRadius: 12, padding: '12px 16px', fontSize: 15, fontFamily: 'inherit', color: '#1d1d1f', outline: 'none' }}
+                  />
+                )}
               </div>
 
               <div>

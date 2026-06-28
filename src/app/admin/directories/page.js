@@ -22,11 +22,16 @@ export default function AdminDirectories() {
   const [descripcion, setDescripcion] = useState('');
   const [aprobado, setAprobado] = useState(false);
   const [procesandoForm, setProcesandoForm] = useState(false);
+  const [categoriasDB, setCategoriasDB] = useState([]);
 
   // Cargar registros
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     try {
+      // Cargar categorías
+      const { data: catData } = await supabase.from('categorias_web').select('*').order('nombre', { ascending: true });
+      if (catData) setCategoriasDB(catData);
+
       let query = supabase.from('directorios_web').select('*');
       
       if (filtroAprobado === 'aprobados') {
@@ -351,14 +356,17 @@ export default function AdminDirectories() {
                 <label className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-zinc-400">
                   Categoría
                 </label>
-                <input
-                  type="text"
+                <select
                   required
                   value={categoria}
                   onChange={(e) => setCategoria(e.target.value)}
-                  placeholder="Enlaces y Sitios Web"
-                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-2.5 text-xs lg:text-sm text-white placeholder-zinc-650 focus:outline-none focus:border-cyan-500/80 transition-all"
-                />
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-2.5 text-xs lg:text-sm text-white focus:outline-none focus:border-cyan-500/80 transition-all appearance-none"
+                >
+                  <option value="" className="text-zinc-500">Seleccionar Categoría...</option>
+                  {categoriasDB.map((cat) => (
+                    <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1.5">
