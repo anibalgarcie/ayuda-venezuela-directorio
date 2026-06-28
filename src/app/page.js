@@ -65,6 +65,7 @@ const i18n = {
     exito:         '¡Reporte recibido! Será revisado por los moderadores.',
     errorCampos:   'Por favor, rellena todos los campos obligatorios.',
     errorUrlInvalida: 'Por favor, ingresa un enlace válido (ej. https://ejemplo.com).',
+    errorDominioDuplicado: 'Ya existe un enlace registrado para este dominio principal.',
     banner:        'Red de Recursos en Vivo',
     verified:      'Verificado',
     noDesc:        'Sin descripción disponible.',
@@ -75,8 +76,6 @@ const i18n = {
       { id: 'todos',              nombre: 'Todos',             icono: SlidersHorizontal, habilitado: true  },
       { id: 'directorios_web',    nombre: 'Sitios Web',        icono: Globe,             habilitado: true  },
       { id: 'centros_acopio',     nombre: 'Centros de Acopio', icono: MapPin,            habilitado: false },
-      { id: 'contactos_recursos', nombre: 'Contactos',         icono: Phone,             habilitado: false },
-      { id: 'reportes_sismos',    nombre: 'Sismos',            icono: Activity,          habilitado: false },
     ],
   },
   en: {
@@ -103,6 +102,7 @@ const i18n = {
     exito:         'Report received! It will be reviewed by moderators.',
     errorCampos:   'Please fill in all required fields.',
     errorUrlInvalida: 'Please enter a valid link (e.g., https://example.com).',
+    errorDominioDuplicado: 'A link for this base domain is already registered.',
     banner:        'Live Resource Network',
     verified:      'Verified',
     noDesc:        'No description available.',
@@ -113,8 +113,6 @@ const i18n = {
       { id: 'todos',              nombre: 'All',                icono: SlidersHorizontal, habilitado: true  },
       { id: 'directorios_web',    nombre: 'Websites',           icono: Globe,             habilitado: true  },
       { id: 'centros_acopio',     nombre: 'Collection Centers', icono: MapPin,            habilitado: false },
-      { id: 'contactos_recursos', nombre: 'Contacts',           icono: Phone,             habilitado: false },
-      { id: 'reportes_sismos',    nombre: 'Quakes',             icono: Activity,          habilitado: false },
     ],
   },
 };
@@ -128,6 +126,7 @@ const categoryEmoji = {
 export default function Home() {
   const [menuActivo, setMenuActivo]     = useState('directorios_web');
   const [busqueda, setBusqueda]         = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState('');
   const [idioma, setIdioma]             = useState('es');
   const [cargando, setCargando]         = useState(false);
   const [datos, setDatos]               = useState([]);
@@ -168,6 +167,8 @@ export default function Home() {
 
   /* ── search filter ── */
   const datosFiltrados = datos.filter((item) => {
+    if (filtroCategoria && item.categoria !== filtroCategoria) return false;
+    
     const q = busqueda.toLowerCase().trim();
     if (!q) return true;
     return (
@@ -176,6 +177,8 @@ export default function Home() {
       (item.categoria || '').toLowerCase().includes(q)
     );
   });
+
+  const categoriasUnicas = Array.from(new Set(datos.map(d => d.categoria).filter(Boolean))).sort();
 
   /* ── click tracking ── */
   const handleVisitLink = (item) => {
@@ -193,18 +196,32 @@ export default function Home() {
       return;
     }
 
-    // URL Validation
+    // URL Validation & Domain Check
     try {
       const parsedUrl = new URL(formulario.url);
       if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-        throw new Error();
+        setNotificacion({ tipo: 'error', texto: t.errorUrlInvalida });
+        return;
+      }
+      
+      setEnviando(true);
+      // Verify if domain is already in DB
+      const { data: domainCheck } = await supabase
+        .from('directorios_web')
+        .select('url')
+        .ilike('url', `%${parsedUrl.hostname}%`)
+        .limit(1);
+        
+      if (domainCheck && domainCheck.length > 0) {
+        setNotificacion({ tipo: 'error', texto: t.errorDominioDuplicado });
+        setEnviando(false);
+        return;
       }
     } catch (_) {
       setNotificacion({ tipo: 'error', texto: t.errorUrlInvalida });
       return;
     }
 
-    setEnviando(true);
     setNotificacion({ tipo: '', texto: '' });
     try {
       const { error } = await supabase.from('directorios_web').insert([{
@@ -375,6 +392,30 @@ export default function Home() {
             />
           </div>
 
+          {/* Category Select */}
+          <div style={{ position: 'relative', flex: '1 1 180px', minWidth: 140 }}>
+            <select
+              value={filtroCategoria}
+              onChange={(e) => setFiltroCategoria(e.target.value)}
+              style={{
+                width: '100%', background: '#F5F5F7', border: '1.5px solid #e8e8ed',
+                borderRadius: 12, padding: '10px 30px 10px 14px',
+                fontSize: 14, fontFamily: 'inherit', color: '#1d1d1f', outline: 'none',
+                appearance: 'none', cursor: 'pointer'
+              }}
+              onFocus={(e) => { e.target.style.borderColor = '#003cc3'; e.target.style.boxShadow = '0 0 0 3px rgba(0,113,227,0.12)'; }}
+              onBlur={(e)  => { e.target.style.borderColor = '#e8e8ed'; e.target.style.boxShadow = 'none'; }}
+            >
+              <option value="">Todas las categorías</option>
+              {categoriasUnicas.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#86868b' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
+
           {/* Divider */}
           <div style={{ width: 1, height: 28, background: '#e8e8ed', flexShrink: 0 }} />
 
@@ -463,18 +504,46 @@ export default function Home() {
                       </span>
                     )}
 
-                    {/* Verified badge */}
-                    <div style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      background: 'rgba(52,199,89,0.10)',
-                      border: '1px solid rgba(52,199,89,0.25)',
-                      borderRadius: 9999, padding: '3px 9px',
-                    }}>
-                      <CheckCircle2 size={11} color="#34c759" strokeWidth={2.5} />
-                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#34c759' }}>
-                        {t.verified}
-                      </span>
-                    </div>
+                    {/* Badges by status */}
+                    {(item.estado === 'verificado' || (!item.estado && item.aprobado)) && (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        background: 'rgba(52,199,89,0.10)',
+                        border: '1px solid rgba(52,199,89,0.25)',
+                        borderRadius: 9999, padding: '3px 9px',
+                      }}>
+                        <CheckCircle2 size={11} color="#34c759" strokeWidth={2.5} />
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#34c759' }}>
+                          Verificado
+                        </span>
+                      </div>
+                    )}
+                    {item.estado === 'aprobado' && (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        background: 'rgba(0,60,195,0.10)',
+                        border: '1px solid rgba(0,60,195,0.25)',
+                        borderRadius: 9999, padding: '3px 9px',
+                      }}>
+                        <CheckCircle2 size={11} color="#003cc3" strokeWidth={2.5} />
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#003cc3' }}>
+                          Aprobado
+                        </span>
+                      </div>
+                    )}
+                    {item.estado === 'pendiente' && (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        background: 'rgba(255,149,0,0.10)',
+                        border: '1px solid rgba(255,149,0,0.25)',
+                        borderRadius: 9999, padding: '3px 9px',
+                      }}>
+                        <CheckCircle2 size={11} color="#ff9500" strokeWidth={2.5} />
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ff9500' }}>
+                          Pendiente
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* ── Card body ── */}
@@ -483,10 +552,20 @@ export default function Home() {
                     {/* Title — primary content, largest text on card */}
                     <h3 style={{
                       fontSize: 16, fontWeight: 700, lineHeight: 1.3,
-                      color: '#1d1d1f', marginBottom: 8, letterSpacing: '-0.01em',
+                      color: '#1d1d1f', marginBottom: 4, letterSpacing: '-0.01em',
                     }}>
                       {item.titulo || item.nombre || t.noTitle}
                     </h3>
+
+                    {/* Domain label */}
+                    {item.url && (
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#86868b', marginBottom: 12, display: 'block' }}>
+                        {(() => {
+                          try { return new URL(item.url).hostname.replace(/^www\./, ''); } 
+                          catch { return item.url; }
+                        })()}
+                      </span>
+                    )}
 
                     {/* Description — secondary content, clamped to 3 lines */}
                     <p style={{
