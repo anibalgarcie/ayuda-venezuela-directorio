@@ -1,24 +1,28 @@
-import { Poppins } from "next/font/google";
+import { Roboto } from "next/font/google";
 import "./globals.css";
 
-// Configuración de la fuente Poppins (la más moderna y redonda)
-const poppins = Poppins({ 
+/*
+  Roboto — la tipografía oficial de Google Material Design.
+  Disponible públicamente en Google Fonts. Geométrica con terminales
+  amigables, excelente legibilidad en interfaces web y móvil.
+*/
+const roboto = Roboto({
   subsets: ["latin"],
-  // Importamos varios grosores para tener títulos gruesos y textos ligeros
-  weight: ['300', '400', '500', '600', '700', '800'], 
-  variable: '--font-poppins', // Creamos una variable CSS opcional
+  weight: ["400", "500", "700"],
+  variable: "--font-roboto",
+  display: "swap",
 });
 
 export const metadata = {
-  title: "S.O.S Venezuela - Portal de Emergencia",
-  description: "Información unificada en tiempo real ante la crisis sísmica. Revisa, reporta y salva vidas.",
+  title: "Ayuda Venezuela — Directorio de Recursos Humanitarios",
+  description:
+    "Colección verificada de recursos web internacionales y locales dedicados a la ayuda humanitaria, respuesta de emergencia y coordinación logística en Venezuela.",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es">
-      {/* Aplicamos Poppins directamente al body */}
-      <body className={`${poppins.className} antialiased bg-zinc-950 text-zinc-100`}>
+    <html lang="es" suppressHydrationWarning>
+      <body className={`${roboto.variable} antialiased`} suppressHydrationWarning>
         {children}
       </body>
     </html>

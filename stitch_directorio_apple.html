@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ReliefLink | Resource Directory</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Plus Jakarta Sans (from Design System 19) -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols (Thin/Light variations) -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#0071e3", // Apple-style Blue
+                    "on-primary": "#ffffff",
+                    "background": "#F5F5F7", // Requested soft gray
+                    "surface": "#ffffff",
+                    "surface-variant": "#F5F5F7",
+                    "on-surface": "#1d1d1f",
+                    "on-surface-variant": "#86868b",
+                    "outline": "#d2d2d7",
+                    "emergency-red": "#ff3b30",
+                    "success": "#34c759",
+                    "glass-border": "rgba(0, 0, 0, 0.1)"
+            },
+            "borderRadius": {
+                    "DEFAULT": "12px",
+                    "lg": "24px", // Large corner radii
+                    "xl": "32px",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "48px",
+                    "md": "24px",
+                    "gutter": "16px",
+                    "margin-desktop": "40px",
+                    "sm": "12px",
+                    "xs": "8px",
+                    "margin-mobile": "20px",
+                    "lg": "32px",
+                    "base": "4px"
+            },
+            "fontFamily": {
+                    "body": ["Plus Jakarta Sans", "Inter", "sans-serif"],
+                    "display": ["Plus Jakarta Sans", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .apple-blur {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+        }
+        .apple-card-shadow {
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #F5F5F7;
+            color: #1d1d1f;
+            -webkit-font-smoothing: antialiased;
+        }
+        .section-header-rule {
+            height: 1px;
+            background: #d2d2d7;
+            flex-grow: 1;
+        }
+    </style>
+</head>
+<body class="font-body selection:bg-primary/20 selection:text-primary">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 w-full z-50 apple-blur border-b border-glass-border">
+<nav class="flex justify-between items-center max-w-7xl mx-auto px-margin-desktop h-14">
+<div class="font-display text-[22px] font-semibold tracking-tight text-on-surface">ReliefLink</div>
+<div class="hidden md:flex items-center gap-lg">
+<a class="text-sm font-medium text-on-surface hover:text-primary transition-colors" href="#">Directory</a>
+<a class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors" href="#">Reports</a>
+<a class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors" href="#">About</a>
+</div>
+<div class="flex items-center gap-md">
+<button class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Login</button>
+<button class="bg-primary text-on-primary px-sm py-1.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity">Get Started</button>
+</div>
+</nav>
+</header>
+<main class="min-h-screen">
+<!-- Hero Section -->
+<section class="max-w-7xl mx-auto px-margin-desktop pt-xl pb-lg">
+<div class="max-w-4xl">
+<div class="inline-flex items-center gap-xs bg-white apple-card-shadow px-sm py-1 rounded-full mb-md">
+<span class="w-1.5 h-1.5 rounded-full bg-success"></span>
+<span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Live Resource Network</span>
+</div>
+<h1 class="font-display text-[48px] md:text-[56px] font-bold leading-tight tracking-tight mb-md">Humanitarian Resource Directory</h1>
+<p class="text-on-surface-variant text-[21px] font-medium leading-snug max-w-3xl">
+                A verified collection of international and local web resources dedicated to humanitarian aid, emergency response, and logistics coordination.
+            </p>
+</div>
+</section>
+<!-- Directory Content -->
+<div class="max-w-7xl mx-auto px-margin-desktop space-y-2xl pb-2xl">
+<!-- Section: Official Agencies -->
+<section>
+<div class="flex items-center gap-md mb-lg">
+<h2 class="font-display text-2xl font-bold">Official Agencies</h2>
+<div class="section-header-rule"></div>
+<span class="text-on-surface-variant text-xs font-semibold uppercase tracking-widest">UN &amp; State Partners</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<!-- Card 1 -->
+<div class="bg-surface p-lg rounded-lg apple-card-shadow hover:scale-[1.01] transition-transform duration-300">
+<div class="flex justify-between items-start mb-md">
+<div class="w-12 h-12 bg-background rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[28px]">public</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant bg-background px-xs py-0.5 rounded">Verified</span>
+</div>
+<h3 class="font-display text-xl font-bold mb-xs">UNOCHA</h3>
+<p class="text-on-surface-variant text-sm font-medium mb-lg leading-relaxed">UN Office for the Coordination of Humanitarian Affairs website for global crisis data.</p>
+<a class="inline-flex items-center gap-xs text-primary font-bold text-sm hover:underline" href="#">
+                        Visit Site <span class="material-symbols-outlined text-xs">open_in_new</span>
+</a>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface p-lg rounded-lg apple-card-shadow hover:scale-[1.01] transition-transform duration-300">
+<div class="flex justify-between items-start mb-md">
+<div class="w-12 h-12 bg-background rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[28px]">waves</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant bg-background px-xs py-0.5 rounded">Verified</span>
+</div>
+<h3 class="font-display text-xl font-bold mb-xs">ReliefWeb</h3>
+<p class="text-on-surface-variant text-sm font-medium mb-lg leading-relaxed">Specialized digital service of the United Nations for sharing reliable relief information.</p>
+<a class="inline-flex items-center gap-xs text-primary font-bold text-sm hover:underline" href="#">
+                        Visit Site <span class="material-symbols-outlined text-xs">open_in_new</span>
+</a>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface p-lg rounded-lg apple-card-shadow hover:scale-[1.01] transition-transform duration-300">
+<div class="flex justify-between items-start mb-md">
+<div class="w-12 h-12 bg-background rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[28px]">flag</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant bg-background px-xs py-0.5 rounded">Verified</span>
+</div>
+<h3 class="font-display text-xl font-bold mb-xs">USAID / BHA</h3>
+<p class="text-on-surface-variant text-sm font-medium mb-lg leading-relaxed">US Agency for International Development Bureau for Humanitarian Assistance portal.</p>
+<a class="inline-flex items-center gap-xs text-primary font-bold text-sm hover:underline" href="#">
+                        Visit Site <span class="material-symbols-outlined text-xs">open_in_new</span>
+</a>
+</div>
+</div>
+</section>
+<!-- Section: Emergency Services & Health -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-xl">
+<div class="lg:col-span-2 space-y-xl">
+<div>
+<div class="flex items-center gap-md mb-lg">
+<h2 class="font-display text-2xl font-bold">Emergency Services</h2>
+<div class="section-header-rule"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<!-- Card 4 -->
+<div class="bg-surface p-md rounded-lg apple-card-shadow group">
+<div class="flex items-center gap-sm mb-sm">
+<span class="material-symbols-outlined text-emergency-red">emergency</span>
+<h3 class="font-display text-lg font-bold">IFRC Portal</h3>
+</div>
+<p class="text-on-surface-variant text-sm font-medium mb-md">Red Cross and Red Crescent national societies coordination network.</p>
+<button class="text-primary text-xs font-bold hover:underline">Launch Resource Hub</button>
+</div>
+<!-- Card 5 -->
+<div class="bg-surface p-md rounded-lg apple-card-shadow group">
+<div class="flex items-center gap-sm mb-sm">
+<span class="material-symbols-outlined text-emergency-red">map</span>
+<h3 class="font-display text-lg font-bold">GDACS</h3>
+</div>
+<p class="text-on-surface-variant text-sm font-medium mb-md">Global Disaster Alert and Coordination System for real-time monitoring.</p>
+<button class="text-primary text-xs font-bold hover:underline">Launch Resource Hub</button>
+</div>
+</div>
+</div>
+<div>
+<div class="flex items-center gap-md mb-lg">
+<h2 class="font-display text-2xl font-bold">Health &amp; Medical</h2>
+<div class="section-header-rule"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<!-- Card 6 -->
+<div class="bg-surface p-md rounded-lg apple-card-shadow group">
+<div class="flex items-center gap-sm mb-sm">
+<span class="material-symbols-outlined text-success">medical_services</span>
+<h3 class="font-display text-lg font-bold">WHO EMRO</h3>
+</div>
+<p class="text-on-surface-variant text-sm font-medium mb-md">World Health Organization Regional Office for high-risk emergency regions.</p>
+<button class="text-primary text-xs font-bold hover:underline">Launch Resource Hub</button>
+</div>
+<!-- Card 7 -->
+<div class="bg-surface p-md rounded-lg apple-card-shadow group">
+<div class="flex items-center gap-sm mb-sm">
+<span class="material-symbols-outlined text-success">vaccines</span>
+<h3 class="font-display text-lg font-bold">MSF Resources</h3>
+</div>
+<p class="text-on-surface-variant text-sm font-medium mb-md">Doctors Without Borders medical logistics and diagnostic protocol database.</p>
+<button class="text-primary text-xs font-bold hover:underline">Launch Resource Hub</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Section: Supplies Sidebar -->
+<div class="space-y-lg">
+<div class="flex items-center gap-md mb-lg">
+<h2 class="font-display text-2xl font-bold">Supplies</h2>
+<div class="section-header-rule"></div>
+</div>
+<div class="bg-on-surface text-surface p-xl rounded-lg apple-card-shadow relative overflow-hidden h-[560px] flex flex-col">
+<div class="relative z-10">
+<div class="bg-white/10 backdrop-blur-md rounded-xl w-14 h-14 flex items-center justify-center mb-lg">
+<span class="material-symbols-outlined text-white text-3xl">inventory_2</span>
+</div>
+<h3 class="font-display text-2xl font-bold text-white mb-md">Logistics Clusters</h3>
+<p class="text-white/60 font-medium text-base mb-lg leading-relaxed">
+                            Managed by WFP, this is the primary portal for coordination between humanitarian agencies regarding transport, storage, and supply chains.
+                        </p>
+</div>
+<div class="mt-auto relative z-10 flex flex-col gap-md">
+<div class="bg-white/5 border border-white/10 p-md rounded-xl">
+<span class="block text-white/40 text-[10px] font-bold uppercase tracking-widest mb-base">ACTIVE SHIPMENTS</span>
+<span class="text-3xl font-bold text-white tabular-nums tracking-tight">1,402</span>
+</div>
+<button class="w-full bg-white text-on-surface px-lg py-md rounded-full font-bold text-sm text-center hover:bg-white/90 transition-colors">
+                            Access Portal
+                        </button>
+</div>
+<!-- Decorative element -->
+<div class="absolute -right-24 -bottom-24 w-80 h-80 bg-primary/20 rounded-full blur-[100px]"></div>
+</div>
+</div>
+</section>
+<!-- Newsletter/Call to Action -->
+<section class="bg-white p-xl rounded-xl apple-card-shadow flex flex-col md:flex-row items-center justify-between gap-xl">
+<div class="max-w-xl text-center md:text-left">
+<h2 class="font-display text-3xl font-bold mb-sm">Can't find a resource?</h2>
+<p class="text-on-surface-variant font-medium text-lg">Submit a verified humanitarian web portal for review by our coordination committee.</p>
+</div>
+<div class="flex flex-col sm:flex-row w-full md:w-auto gap-md">
+<button class="flex-1 md:flex-none border border-outline text-on-surface px-lg py-md rounded-full font-bold text-sm hover:bg-background transition-all">Submit Link</button>
+<button class="flex-1 md:flex-none bg-on-surface text-surface px-lg py-md rounded-full font-bold text-sm hover:opacity-90 transition-all">Contact Support</button>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-white border-t border-outline/30 w-full py-xl">
+<div class="max-w-7xl mx-auto px-margin-desktop grid grid-cols-1 md:grid-cols-4 gap-xl">
+<div class="space-y-md">
+<div class="font-display text-xl font-bold text-on-surface">ReliefLink</div>
+<p class="text-sm font-medium text-on-surface-variant leading-relaxed">Centralizing coordination for global humanitarian efforts and emergency transparency.</p>
+</div>
+<div>
+<h4 class="text-xs font-bold text-on-surface uppercase tracking-widest mb-lg">Quick Links</h4>
+<ul class="space-y-sm text-sm font-medium text-on-surface-variant">
+<li><a class="hover:text-primary transition-colors" href="#">Emergency Resources</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Training Materials</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Annual Reports</a></li>
+</ul>
+</div>
+<div>
+<h4 class="text-xs font-bold text-on-surface uppercase tracking-widest mb-lg">Connect</h4>
+<ul class="space-y-sm text-sm font-medium text-on-surface-variant">
+<li><a class="hover:text-primary transition-colors" href="#">Volunteer Portal</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Contact Us</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Privacy Policy</a></li>
+</ul>
+</div>
+<div class="bg-background p-md rounded-xl">
+<h4 class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-md">System Status</h4>
+<div class="flex items-center gap-xs">
+<span class="w-2 h-2 rounded-full bg-success"></span>
+<span class="text-xs font-bold">All Systems Operational</span>
+</div>
+<div class="mt-md pt-md border-t border-outline/20">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">LAST UPDATE: OCT 24, 14:02 UTC</p>
+</div>
+</div>
+</div>
+<div class="max-w-7xl mx-auto px-margin-desktop mt-xl pt-lg border-t border-outline/10">
+<p class="text-xs font-medium text-on-surface-variant text-center md:text-left">
+            © 2024 ReliefLink Humanitarian Coordination. All rights reserved.
+        </p>
+</div>
+</footer>
+<script>
+    // Subtle Apple-style interaction for cards
+    document.querySelectorAll('.apple-card-shadow').forEach(card => {
+        card.addEventListener('mouseenter', () => {
+            card.style.transform = 'translateY(-2px)';
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = 'translateY(0px)';
+        });
+    });
+</script>
+</body></html>

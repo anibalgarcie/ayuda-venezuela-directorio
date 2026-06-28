@@ -1,444 +1,610 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase'; // Conexión a tu BD
-
-import { 
-  Globe, Activity, Search, PlusCircle, RefreshCw, Package, MapPin, AlertTriangle, ExternalLink, Phone, Languages, X
+import { supabase } from '@/lib/supabase';
+import {
+  Globe, Activity, Search, MapPin, Phone, ExternalLink, X,
+  RefreshCw, Languages, PlusCircle, AlertTriangle, SlidersHorizontal,
+  HeartPulse, Landmark, Gift, Truck, Radio, BookOpen,
+  ShieldCheck, Users, Building2, Megaphone, FlaskConical,
+  CheckCircle2, GraduationCap, Newspaper, Cpu, Utensils,
+  Zap, HandHeart, Wifi, Heart,
 } from 'lucide-react';
 
-const diccionario = {
-  es: {
-    titulo: "Venezuela", buscar: "Buscar ciudad, insumo, nombre...", reportar: "Reportar Datos", refrescar: "Actualizar",
-    stats: { localizados: "Localizados", ayuda: "Ayuda (Tons)", hospitales: "Hospitales", alertas: "Peligros" },
-    menus: [
-      { id: 'directorios_web', nombre: 'Enlaces y Sitios Web', icono: Globe, habilitado: true },
-      { id: 'centros_acopio', nombre: 'Centros de Acopio', icono: MapPin, habilitado: false },
-      { id: 'contactos_recursos', nombre: 'Contactos y Rescatistas', icono: Phone, habilitado: false },
-      { id: 'reportes_sismos', nombre: 'Sismos y Réplicas', icono: Activity, habilitado: false },
-    ]
-  },
-  en: {
-    titulo: "Venezuela", buscar: "Search city, supply, name...", reportar: "Report Data", refrescar: "Refresh",
-    stats: { localizados: "Located", ayuda: "Aid (Tons)", hospitals: "Hospitals", alertas: "Dangers" },
-    menus: [
-      { id: 'directorios_web', nombre: 'Links & Websites', icono: Globe, habilitado: true },
-      { id: 'centros_acopio', nombre: 'Collection Centers', icono: MapPin, habilitado: false },
-      { id: 'contactos_recursos', nombre: 'Contacts & Rescuers', icono: Phone, habilitado: false },
-      { id: 'reportes_sismos', font: 'Quakes & Aftershocks', icono: Activity, habilitado: false },
-    ]
-  }
+/*
+  ── Category → { Icon, bg, color, gradient } map ───────────────────────
+  Regla UX: los colores semánticos y los íconos expresivos permiten
+  reconocimiento inmediato de categoría sin leer la etiqueta.
+  NINGUNA categoría usa gris — todos los colores son vibrantes y accesibles.
+*/
+const CATEGORY_MAP = {
+  'Salud':         { Icon: HeartPulse,    bg: '#fff0f0', color: '#ff3b30', grad: 'linear-gradient(135deg,#ff3b30,#ff6b6b)' },
+  'Oficial':       { Icon: Landmark,      bg: '#e8f1ff', color: '#0071e3', grad: 'linear-gradient(135deg,#0071e3,#34aadc)' },
+  'Gobierno':      { Icon: Building2,     bg: '#eeeeff', color: '#5856d6', grad: 'linear-gradient(135deg,#5856d6,#a78bfa)' },
+  'Donaciones':    { Icon: HandHeart,     bg: '#fff4e0', color: '#ff9500', grad: 'linear-gradient(135deg,#ff9500,#ffcc02)' },
+  'Logística':     { Icon: Truck,         bg: '#fff8e1', color: '#f59e0b', grad: 'linear-gradient(135deg,#f59e0b,#fcd34d)' },
+  'Comunicación':  { Icon: Radio,         bg: '#f5f0ff', color: '#7c3aed', grad: 'linear-gradient(135deg,#7c3aed,#c084fc)' },
+  'Educación':     { Icon: GraduationCap, bg: '#edfff4', color: '#16a34a', grad: 'linear-gradient(135deg,#16a34a,#4ade80)' },
+  'Voluntariado':  { Icon: Heart,         bg: '#fff0f7', color: '#db2777', grad: 'linear-gradient(135deg,#db2777,#f472b6)' },
+  'Tecnología':    { Icon: Cpu,           bg: '#eff6ff', color: '#2563eb', grad: 'linear-gradient(135deg,#2563eb,#60a5fa)' },
+  'Seguridad':     { Icon: ShieldCheck,   bg: '#ecfdf5', color: '#059669', grad: 'linear-gradient(135deg,#059669,#34d399)' },
+  'Alimentos':     { Icon: Utensils,      bg: '#fff7ed', color: '#ea580c', grad: 'linear-gradient(135deg,#ea580c,#fb923c)' },
+  'Noticias':      { Icon: Newspaper,     bg: '#fefce8', color: '#ca8a04', grad: 'linear-gradient(135deg,#ca8a04,#fbbf24)' },
+  'Investigación': { Icon: FlaskConical,  bg: '#f0f9ff', color: '#0284c7', grad: 'linear-gradient(135deg,#0284c7,#38bdf8)' },
+  'General':       { Icon: Zap,           bg: '#f0f0ff', color: '#4f46e5', grad: 'linear-gradient(135deg,#4f46e5,#818cf8)' },
 };
 
+/* Fallback — always vibrant indigo, never gray */
+function getCategoryStyle(categoria) {
+  return CATEGORY_MAP[categoria] || { Icon: Globe, bg: '#f0f0ff', color: '#4f46e5', grad: 'linear-gradient(135deg,#4f46e5,#818cf8)' };
+}
+
+/* ─── i18n ──────────────────────────────────────────────────────────── */
+const i18n = {
+  es: {
+    titulo:        'Ayuda Venezuela',
+    subtitulo:     'Directorio de Recursos de Auxilio',
+    descripcion:   'Colección verificada de recursos web dedicados a la ayuda humanitaria, respuesta de emergencia y coordinación logística en Venezuela.',
+    buscar:        'Buscar recursos, categorías, nombres...',
+    reportar:      'Reportar Enlace',
+    refrescar:     'Actualizar',
+    visitarEnlace: 'Visitar Sitio',
+    resultados:    'resultados',
+    cargando:      'Consultando base de datos...',
+    sinResultados: 'No hay registros aprobados en esta categoría aún.',
+    sinBusqueda:   'No se encontraron resultados para tu búsqueda.',
+    modalTitulo:   'Reportar un Enlace',
+    campoTitulo:   'Título del Sitio *',
+    campoUrl:      'Dirección URL *',
+    campoCategoria:'Categoría',
+    campoAlcance:  'Alcance',
+    campoDescripcion:'Descripción *',
+    alcanceValor:  'Nacional / Web',
+    btnEnviar:     'Enviar para Moderación',
+    btnProcesando: 'Procesando...',
+    exito:         '¡Reporte recibido! Será revisado por los moderadores.',
+    errorCampos:   'Por favor, rellena todos los campos obligatorios.',
+    banner:        'Red de Recursos en Vivo',
+    verified:      'Verificado',
+    noDesc:        'Sin descripción disponible.',
+    noTitle:       'Sin título',
+    pronto:        'Próximamente',
+    todos:         'Todos',
+    menus: [
+      { id: 'todos',              nombre: 'Todos',             icono: SlidersHorizontal, habilitado: true  },
+      { id: 'directorios_web',    nombre: 'Sitios Web',        icono: Globe,             habilitado: true  },
+      { id: 'centros_acopio',     nombre: 'Centros de Acopio', icono: MapPin,            habilitado: false },
+      { id: 'contactos_recursos', nombre: 'Contactos',         icono: Phone,             habilitado: false },
+      { id: 'reportes_sismos',    nombre: 'Sismos',            icono: Activity,          habilitado: false },
+    ],
+  },
+  en: {
+    titulo:        'Ayuda Venezuela',
+    subtitulo:     'Humanitarian Resource Directory',
+    descripcion:   'A verified collection of web resources dedicated to humanitarian aid, emergency response, and logistics coordination in Venezuela.',
+    buscar:        'Search resources, categories, names...',
+    reportar:      'Report Link',
+    refrescar:     'Refresh',
+    visitarEnlace: 'Visit Site',
+    resultados:    'results',
+    cargando:      'Querying database...',
+    sinResultados: 'No approved records in this category yet.',
+    sinBusqueda:   'No results found for your search.',
+    modalTitulo:   'Report a Link',
+    campoTitulo:   'Site Title *',
+    campoUrl:      'URL Address *',
+    campoCategoria:'Category',
+    campoAlcance:  'Scope',
+    campoDescripcion:'Description *',
+    alcanceValor:  'National / Web',
+    btnEnviar:     'Submit for Review',
+    btnProcesando: 'Processing...',
+    exito:         'Report received! It will be reviewed by moderators.',
+    errorCampos:   'Please fill in all required fields.',
+    banner:        'Live Resource Network',
+    verified:      'Verified',
+    noDesc:        'No description available.',
+    noTitle:       'Untitled',
+    pronto:        'Coming Soon',
+    todos:         'All',
+    menus: [
+      { id: 'todos',              nombre: 'All',                icono: SlidersHorizontal, habilitado: true  },
+      { id: 'directorios_web',    nombre: 'Websites',           icono: Globe,             habilitado: true  },
+      { id: 'centros_acopio',     nombre: 'Collection Centers', icono: MapPin,            habilitado: false },
+      { id: 'contactos_recursos', nombre: 'Contacts',           icono: Phone,             habilitado: false },
+      { id: 'reportes_sismos',    nombre: 'Quakes',             icono: Activity,          habilitado: false },
+    ],
+  },
+};
+
+const categoryEmoji = {
+  Salud: '🏥', Oficial: '🏛️', Donaciones: '💙',
+  Logística: '📦', Comunicación: '📡', Educación: '🎓',
+};
+
+/* ═══════════════════════════════════════════════════════════════════════ */
 export default function Home() {
-  const [menuActivo, setMenuActivo] = useState('directorios_web');
-  const [busqueda, setBusqueda] = useState('');
-  const [idioma, setIdioma] = useState('es');
-  
-  const [cargando, setCargando] = useState(false);
-  const [datos, setDatos] = useState([]);
-
-  // --- ESTADOS PARA EL REPORTE DE DATOS ---
+  const [menuActivo, setMenuActivo]     = useState('directorios_web');
+  const [busqueda, setBusqueda]         = useState('');
+  const [idioma, setIdioma]             = useState('es');
+  const [cargando, setCargando]         = useState(false);
+  const [datos, setDatos]               = useState([]);
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [formulario, setFormulario] = useState({ titulo: '', url: '', descripcion: '', categoria: '' });
-  const [enviando, setEnviando] = useState(false);
-  const [notificacion, setNotificacion] = useState({ tipo: '', texto: '' }); // 'exito' | 'error'
+  const [formulario, setFormulario]     = useState({ titulo: '', url: '', descripcion: '', categoria: '' });
+  const [enviando, setEnviando]         = useState(false);
+  const [notificacion, setNotificacion] = useState({ tipo: '', texto: '' });
 
-  const t = diccionario[idioma];
+  const t = i18n[idioma];
 
+  /* ── fetch ── */
   const cargarDatos = useCallback(async () => {
     setCargando(true);
-    setDatos([]); 
-
+    setDatos([]);
     try {
+      // "todos" fetches from the main active table
+      const tabla = menuActivo === 'todos' ? 'directorios_web' : menuActivo;
       const { data, error } = await supabase
-        .from(menuActivo)
-        .select('*')
-        .eq('aprobado', true)
-        .order('creado_en', { ascending: false });
-        
+        .from(tabla).select('*').eq('aprobado', true).order('creado_en', { ascending: false });
       if (error) throw error;
       setDatos(data || []);
-    } catch (error) {
-      console.error(`❌ Error en tabla "${menuActivo}":`, error.message || error);
-      if (error.details) console.error(`🔍 Detalles:`, error.details);
+    } catch (err) {
+      console.error(`Error en "${menuActivo}":`, err.message);
     } finally {
       setCargando(false);
     }
   }, [menuActivo]);
 
+  useEffect(() => { const id = setTimeout(cargarDatos, 0); return () => clearTimeout(id); }, [cargarDatos]);
+
+  /* ── analytics ── */
   useEffect(() => {
-    const temporizador = setTimeout(() => {
-      cargarDatos();
-    }, 0);
+    supabase.from('analytics_views').insert([{ path: '/' }]).then(({ error }) => {
+      if (error) console.warn('Analytics:', error.message);
+    });
+  }, []);
 
-    return () => clearTimeout(temporizador);
-  }, [cargarDatos]);
-
-  // --- LÓGICA DEL BUSCADOR EN TIEMPO REAL ---
+  /* ── search filter ── */
   const datosFiltrados = datos.filter((item) => {
-    const término = busqueda.toLowerCase().trim();
-    if (!término) return true;
-
-    const titulo = (item.titulo || item.nombre || '').toLowerCase();
-    const descripcion = (item.descripcion || item.detalles || '').toLowerCase();
-    const categoria = (item.categoria || '').toLowerCase();
-
-    return titulo.includes(término) || descripcion.includes(término) || categoria.includes(término);
+    const q = busqueda.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (item.titulo || item.nombre || '').toLowerCase().includes(q) ||
+      (item.descripcion || item.detalles || '').toLowerCase().includes(q) ||
+      (item.categoria || '').toLowerCase().includes(q)
+    );
   });
 
-  // --- ENVIAR REPORTE A SUPABASE ---
-  const manejarEnvioReporte = async (e) => {
+  /* ── click tracking ── */
+  const handleVisitLink = (item) => {
+    if (item.id) supabase.rpc('increment_clicks', { row_id: item.id }).then(({ error }) => {
+      if (error) console.warn('Click tracking:', error.message);
+    });
+    window.open(item.url, '_blank', 'noopener,noreferrer');
+  };
+
+  /* ── submit ── */
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formulario.titulo || !formulario.url || !formulario.descripcion) {
-      setNotificacion({ tipo: 'error', texto: 'Por favor, rellena todos los campos obligatorios.' });
+      setNotificacion({ tipo: 'error', texto: t.errorCampos });
       return;
     }
-
     setEnviando(true);
     setNotificacion({ tipo: '', texto: '' });
-
     try {
-      const { error } = await supabase
-        .from('directorios_web') 
-        .insert([
-          {
-            titulo: formulario.titulo,
-            url: formulario.url,
-            descripcion: formulario.descripcion,
-            categoria: formulario.categoria || 'General',
-            aprobado: false 
-          }
-        ]);
-
+      const { error } = await supabase.from('directorios_web').insert([{
+        titulo: formulario.titulo, url: formulario.url,
+        descripcion: formulario.descripcion, categoria: formulario.categoria || 'General', aprobado: false,
+      }]);
       if (error) throw error;
-
-      setNotificacion({ tipo: 'exito', texto: '¡Reporte recibido con éxito! Será revisado por los moderadores a la brevedad.' });
+      setNotificacion({ tipo: 'exito', texto: t.exito });
       setFormulario({ titulo: '', url: '', descripcion: '', categoria: '' });
-      
-      setTimeout(() => {
-        setModalAbierto(false);
-        setNotificacion({ tipo: '', texto: '' });
-      }, 3000);
-
-    } catch (error) {
-      console.error('❌ Error al insertar reporte:', error);
-      setNotificacion({ tipo: 'error', texto: `No se pudo enviar: ${error.message || 'Error de conexión'}` });
+      setTimeout(() => { setModalAbierto(false); setNotificacion({ tipo: '', texto: '' }); }, 3000);
+    } catch (err) {
+      setNotificacion({ tipo: 'error', texto: `No se pudo enviar: ${err.message}` });
     } finally {
       setEnviando(false);
     }
   };
 
-  // DESACTIVADO TEMPORALMENTE: Evita el error PGRST205 porque la tabla 'analytics_views' no existe todavía.
-  /*
-  useEffect(() => {
-    supabase.from('analytics_views').insert([{ path: '/' }]).then(({ error }) => {
-      if (error) console.error('Error tracking page view:', error);
-    });
-  }, []);
-  */
+  const closeModal = () => { setModalAbierto(false); setNotificacion({ tipo: '', texto: '' }); };
 
+  const notifColors = notificacion.tipo === 'exito'
+    ? { border: 'rgba(52,199,89,0.35)', bg: 'rgba(52,199,89,0.06)', icon: '#34c759', text: '#1a7a38' }
+    : { border: 'rgba(255,59,48,0.35)', bg: 'rgba(255,59,48,0.06)', icon: '#ff3b30', text: '#cc1f12' };
+
+  /* ─────────────────────────────────────────────────────────────────── */
   return (
-    <main className="min-h-screen bg-[#09090b] text-zinc-100 antialiased selection:bg-cyan-500 selection:text-black">
-      
-      {/* HEADER SUPERIOR */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-[#09090b]/80 border-b border-zinc-900 px-4 lg:px-6 py-4 w-full flex items-center justify-between shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-          </div>
-          <h1 className="text-xl lg:text-2xl font-black tracking-tight text-white flex items-center gap-2">
-            S.O.S <span className="bg-linear-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">{t.titulo}</span>
-          </h1>
-        </div>
+    <div style={{ minHeight: '100vh', background: '#F5F5F7' }}>
 
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={cargarDatos}
-            title={t.refrescar}
-            className={`p-2.5 rounded-xl bg-zinc-900/50 border border-zinc-800 text-cyan-400 hover:bg-zinc-800/80 hover:text-white transition-all duration-300 shadow-inner ${cargando ? 'animate-spin' : ''}`}
-          >
-            <RefreshCw className="h-4 w-4 lg:h-5 lg:w-5" />
-          </button>
-          
-          <button 
-            onClick={() => setIdioma(idioma === 'es' ? 'en' : 'es')}
-            className="flex items-center gap-2 bg-zinc-900/50 border border-zinc-800 text-zinc-200 px-3.5 py-2 rounded-xl text-xs font-bold hover:border-cyan-500/40 hover:bg-zinc-900 transition-all duration-300"
-          >
-            <Languages className="h-4 w-4 text-cyan-400" />
-            {idioma === 'es' ? 'EN' : 'ES'}
-          </button>
+      {/* ══ HEADER ══ */}
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, borderBottom: '1px solid rgba(0,0,0,0.08)', background: 'rgba(255,255,255,0.72)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+
+          {/* Logo */}
+          <a href="/" style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.02em', color: '#1d1d1f', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff3b30', display: 'inline-block', boxShadow: '0 0 0 3px rgba(255,59,48,0.2)' }} />
+            {t.titulo}
+          </a>
+
+          {/* Desktop nav */}
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+            <a href="#directorio" style={{ fontSize: 14, fontWeight: 600, color: '#0071e3', textDecoration: 'none' }}>Directorio</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setModalAbierto(true); }} style={{ fontSize: 14, fontWeight: 500, color: '#86868b', textDecoration: 'none' }}>Reportar</a>
+          </nav>
+
+          {/* Right actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={cargarDatos} title={t.refrescar} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: '#86868b', display: 'flex', alignItems: 'center' }}>
+              <RefreshCw size={16} className={cargando ? 'spinner' : ''} />
+            </button>
+            <button onClick={() => setIdioma(idioma === 'es' ? 'en' : 'es')} style={{ background: 'none', border: '1.5px solid #d2d2d7', borderRadius: 9999, padding: '5px 13px', fontSize: 13, fontWeight: 600, color: '#1d1d1f', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Languages size={13} color="#86868b" />
+              {idioma === 'es' ? 'EN' : 'ES'}
+            </button>
+            <a href="/admin/login" style={{ background: 'none', border: '1.5px solid #d2d2d7', borderRadius: 9999, padding: '6px 15px', fontSize: 13, fontWeight: 600, color: '#1d1d1f', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+              Iniciar Sesión
+            </a>
+            <button onClick={() => setModalAbierto(true)} style={{ background: '#0071e3', color: '#fff', border: 'none', borderRadius: 9999, padding: '7px 17px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              {t.reportar}
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 lg:py-8 space-y-6 lg:space-y-8">
-        
-        {/* REJILLA PRINCIPAL */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-          
-          {/* PANEL IZQUIERDO */}
-          <aside className="lg:col-span-3 space-y-4 lg:space-y-6 lg:sticky lg:top-28">
-            <div className="bg-zinc-900/20 border border-zinc-900 rounded-2xl p-3 shadow-md backdrop-blur-sm overflow-hidden">
-              <div className="relative">
-                <Search className="absolute left-3.5 top-3.5 h-4 w-4 lg:h-5 lg:w-5 text-zinc-500" />
-                <input
-                  type="text"
-                  placeholder={t.buscar}
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  className="w-full bg-zinc-950/80 border border-zinc-800 rounded-xl pl-10 lg:pl-11 pr-4 py-3 text-sm lg:text-[15px] text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/30 transition-all duration-300"
-                />
-              </div>
-            </div>
+      {/* ══ HERO ══ */}
+      <section style={{ maxWidth: 1280, margin: '0 auto', padding: '48px 24px 32px' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fff', borderRadius: 9999, padding: '5px 14px', marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34c759' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#86868b' }}>{t.banner}</span>
+        </div>
+        <h1 style={{ fontSize: 'clamp(30px, 5vw, 52px)', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.03em', color: '#1d1d1f', marginBottom: 14, maxWidth: 680 }}>
+          {t.subtitulo}
+        </h1>
+        <p style={{ fontSize: 17, fontWeight: 500, color: '#86868b', maxWidth: 580, lineHeight: 1.6 }}>
+          {t.descripcion}
+        </p>
+      </section>
 
-            {/* MENÚ FILTRADO */}
-            <nav className="grid grid-cols-1 lg:flex lg:flex-col gap-2 w-full">
-              {t.menus.map((m) => {
-                const Icono = m.icono;
-                const activo = menuActivo === m.id;
-                
-                return (
-                  <button
-                    key={m.id}
-                    disabled={!m.habilitado}
-                    onClick={() => {
-                      if (m.habilitado) setMenuActivo(m.id);
-                    }}
-                    className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-[16px] lg:text-[17px] font-semibold transition-all duration-200 text-left justify-start relative ${
-                      !m.habilitado
-                        ? 'opacity-40 bg-zinc-950/10 border-zinc-950/50 text-zinc-600 cursor-not-allowed'
-                        : activo 
-                        ? 'bg-zinc-900/40 text-cyan-400 border-cyan-500 ring-1 ring-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.08)] scale-[1.01]' 
-                        : 'bg-zinc-900/40 border-zinc-900/60 text-zinc-400 hover:bg-zinc-900/90 hover:text-zinc-200 hover:border-zinc-800'
-                    }`}
-                  >
-                    <Icono className={`h-4 w-4 lg:h-5 lg:w-5 shrink-0 transition-transform duration-200 ${!m.habilitado ? 'text-zinc-700' : activo ? 'text-cyan-400 scale-110' : 'text-zinc-500'}`} />
-                    <span className="truncate">{m.nombre}</span>
-                  </button>
-                );
-              })}
-            </nav>
+      {/* ══ FILTER BAR ══ */}
+      <div id="directorio" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ background: '#fff', borderRadius: 20, padding: '16px 20px', boxShadow: '0 2px 16px rgba(0,0,0,0.06)', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
 
-            {/* BOTÓN REPORTAR ESCRITORIO */}
-            <button 
-              onClick={() => setModalAbierto(true)}
-              className="hidden lg:flex w-full bg-linear-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-zinc-950 font-extrabold py-4 rounded-xl transition-all duration-300 items-center justify-center gap-2.5 shadow-[0_4px_20px_rgba(34,211,238,0.15)] active:scale-[0.99]"
-            >
-              <PlusCircle className="h-5 w-5 stroke-[2.5]" />
-              <span className="text-base tracking-tight">{t.reportar}</span>
-            </button>
-          </aside>
+          {/* Search */}
+          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 180 }}>
+            <Search size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#86868b', pointerEvents: 'none' }} />
+            <input
+              type="text"
+              placeholder={t.buscar}
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              style={{
+                width: '100%', background: '#F5F5F7', border: '1.5px solid #e8e8ed',
+                borderRadius: 12, padding: '10px 14px 10px 38px',
+                fontSize: 14, fontFamily: 'inherit', color: '#1d1d1f', outline: 'none',
+              }}
+              onFocus={(e) => { e.target.style.borderColor = '#0071e3'; e.target.style.boxShadow = '0 0 0 3px rgba(0,113,227,0.12)'; }}
+              onBlur={(e)  => { e.target.style.borderColor = '#e8e8ed'; e.target.style.boxShadow = 'none'; }}
+            />
+          </div>
 
-          {/* CONTENIDO PRINCIPAL */}
-          <section className="lg:col-span-9">
-            <div className="bg-zinc-900/10 border border-zinc-900/80 rounded-3xl lg:rounded-4xl p-5 lg:p-8 min-h-[55vh] lg:min-h-[65vh] shadow-xl backdrop-blur-sm overflow-hidden">
-              
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 lg:mb-8 pb-4 lg:pb-5 border-b border-zinc-900 overflow-hidden">
-                <h2 className="text-2xl lg:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-                  <span className="h-6 lg:h-8 w-1 bg-cyan-500 rounded-full inline-block"></span>
-                  {t.menus.find(m => m.id === menuActivo)?.nombre || "Categoría"}
-                </h2>
-                {!cargando && (
-                  <span className="text-[13px] lg:text-[15px] text-zinc-500 font-mono bg-zinc-900/50 border border-zinc-800/60 px-3 py-1.5 rounded-lg w-fit">
-                    {datosFiltrados.length} resultados
-                  </span>
-                )}
-              </div>
+          {/* Divider */}
+          <div style={{ width: 1, height: 28, background: '#e8e8ed', flexShrink: 0 }} />
 
-              {cargando ? (
-                <div className="flex flex-col items-center justify-center py-20 lg:py-28">
-                  <div className="w-10 h-10 border-4 border-zinc-800 border-t-cyan-500 rounded-full animate-spin mb-4"></div>
-                  <p className="text-zinc-400 text-xs lg:text-sm font-medium tracking-wide">Consultando base de datos...</p>
-                </div>
-              ) : datosFiltrados.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 border border-dashed border-zinc-800/60 rounded-2xl bg-zinc-950/20 px-4 text-center">
-                  <AlertTriangle className="h-7 w-7 text-zinc-600 mb-3" />
-                  <p className="text-zinc-500 font-medium text-sm">
-                    {busqueda ? 'No se encontraron resultados para tu búsqueda.' : 'No hay registros aprobados en esta categoría aún.'}
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-5">
-                  {datosFiltrados.map((item) => (
-                    <div key={item.id} className="bg-zinc-900/20 border border-zinc-900 hover:border-zinc-800/80 hover:bg-zinc-900/40 transition-all duration-300 rounded-2xl p-5 flex flex-col justify-between shadow-sm group overflow-hidden">
-                      <div>
-                        {/* CONTENEDOR HEADER DE LA TARJETA */}
-                        <div className="flex flex-col gap-2 mb-3 w-full">
-                          {/* El título ahora está arriba con todo el ancho libre */}
-                          <div className="flex items-center gap-2 min-w-0 w-full overflow-hidden">
-                            {/* CÍRCULO VERDE DE VERIFICADO */}
-                            <span className="relative flex h-2 w-2 shrink-0">
-                              <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                            </span>
-                            <h3 className="font-bold text-white text-[18px] lg:text-[19px] leading-snug group-hover:text-cyan-400 transition-colors duration-300 truncate">
-                              {item.titulo || item.nombre || "Registro sin título"}
-                            </h3>
-                          </div>
+          {/* Category pills */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: '999 1 0' }}>
+            {t.menus.map((m) => {
+              const Icono = m.icono;
+              const active = menuActivo === m.id;
+              return (
+                <button
+                  key={m.id}
+                  disabled={!m.habilitado}
+                  onClick={() => m.habilitado && setMenuActivo(m.id)}
+                  title={!m.habilitado ? t.pronto : undefined}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: active ? '8px 16px' : '7px 14px',
+                    borderRadius: 9999,
+                    border: active ? '2px solid #0071e3' : '1.5px solid transparent',
+                    background: active ? '#0071e3' : '#F5F5F7',
+                    color: !m.habilitado ? '#c7c7cc' : active ? '#fff' : '#1d1d1f',
+                    fontFamily: 'inherit', fontWeight: 600, fontSize: 13,
+                    cursor: m.habilitado ? 'pointer' : 'not-allowed',
+                    opacity: !m.habilitado ? 0.55 : 1,
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Icono size={13} />
+                  {m.nombre}
+                  {!m.habilitado && (
+                    <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(0,0,0,0.08)', borderRadius: 4, padding: '1px 5px', color: '#86868b', marginLeft: 2 }}>
+                      Pronto
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-                          {/* La categoría ahora se renderiza perfectamente aquí abajo */}
-                          {item.categoria && (
-                            <div className="w-fit">
-                              <span className="text-[11px] lg:text-[11px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-400/10 border border-cyan-500/10 px-2.5 py-1 rounded-md whitespace-nowrap">
-                                {item.categoria}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <p className="text-zinc-400 text-[13px] lg:text-[14px] leading-relaxed mb-5 line-clamp-3">
-                          {item.descripcion || item.detalles || "Sin descripción disponible."}
-                        </p>
-                      </div>
-                      
-                      {item.url && (
-                        <a 
-                          href={item.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="w-full flex items-center text-[15px] justify-center gap-2 bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs lg:text-sm font-semibold py-2.5 lg:py-3 rounded-xl transition-all duration-300 hover:bg-zinc-800 hover:text-white hover:border-zinc-700 active:scale-[0.98]"
-                        >
-                          <span>Visitar Enlace</span> 
-                          <ExternalLink className="h-4 w-4 text-zinc-500 group-hover:text-cyan-400 transition-colors" />
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-            </div>
-          </section>
+          {/* Result count */}
+          {!cargando && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#86868b', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {datosFiltrados.length} {t.resultados}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* BOTÓN FLOTANTE MÓVIL */}
-      <div className="lg:hidden fixed bottom-6 left-5 right-5 z-50">
-        <button 
+      {/* ══ CARDS GRID ══ */}
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 24px 100px' }}>
+
+        {cargando ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 0', gap: 14 }}>
+            <div style={{ width: 34, height: 34, border: '3px solid #d2d2d7', borderTopColor: '#0071e3', borderRadius: '50%' }} className="spinner" />
+            <p style={{ color: '#86868b', fontSize: 14, fontWeight: 500 }}>{t.cargando}</p>
+          </div>
+        ) : datosFiltrados.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 0', gap: 10 }}>
+            <AlertTriangle size={28} color="#c7c7cc" />
+            <p style={{ color: '#86868b', fontSize: 14, fontWeight: 500 }}>
+              {busqueda ? t.sinBusqueda : t.sinResultados}
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18 }}>
+            {datosFiltrados.map((item, i) => {
+              const { Icon, bg, color, grad } = getCategoryStyle(item.categoria);
+              return (
+                <article
+                  key={item.id}
+                  className="apple-card fade-in-up"
+                  style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 0, animationDelay: `${i * 0.04}s` }}
+                >
+                  {/* ── Card header: icon + verified badge ── */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+
+                    {/* Category icon — colored background unique per category */}
+                    <div style={{
+                      width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                      background: bg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Icon size={22} color={color} strokeWidth={1.8} />
+                    </div>
+
+                    {/* Verified badge — green, with checkmark */}
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      background: 'rgba(52,199,89,0.10)',
+                      border: '1px solid rgba(52,199,89,0.25)',
+                      borderRadius: 9999, padding: '3px 9px',
+                    }}>
+                      <CheckCircle2 size={11} color="#34c759" strokeWidth={2.5} />
+                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#34c759' }}>
+                        {t.verified}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ── Card body ── */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+
+                    {/* Category tag — uses the category's own color */}
+                    {item.categoria && (
+                      <span style={{
+                        display: 'inline-block', alignSelf: 'flex-start',
+                        fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+                        background: bg, color: color,
+                        padding: '3px 9px', borderRadius: 6, marginBottom: 10,
+                      }}>
+                        {item.categoria}
+                      </span>
+                    )}
+
+                    {/* Title — primary content, largest text on card */}
+                    <h3 style={{
+                      fontSize: 16, fontWeight: 700, lineHeight: 1.3,
+                      color: '#1d1d1f', marginBottom: 8, letterSpacing: '-0.01em',
+                    }}>
+                      {item.titulo || item.nombre || t.noTitle}
+                    </h3>
+
+                    {/* Description — secondary content, clamped to 3 lines */}
+                    <p style={{
+                      fontSize: 13, fontWeight: 400, color: '#6e6e73',
+                      lineHeight: 1.65, marginBottom: 20, flexGrow: 1,
+                      display: '-webkit-box', WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    }}>
+                      {item.descripcion || item.detalles || t.noDesc}
+                    </p>
+                  </div>
+
+                  {/* ── CTA button — filled, colorful, prominent ── */}
+                  {item.url && (
+                    <button
+                      onClick={() => handleVisitLink(item)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                        width: '100%', padding: '11px 16px',
+                        background: grad,
+                        border: 'none',
+                        borderRadius: 12,
+                        cursor: 'pointer',
+                        color: '#fff',
+                        fontFamily: 'inherit', fontWeight: 600, fontSize: 14,
+                        letterSpacing: '0.01em',
+                        boxShadow: `0 4px 14px ${color}40`,
+                        transition: 'filter 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease',
+                        marginTop: 4,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.filter = 'brightness(1.1)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = `0 8px 20px ${color}55`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.filter = 'brightness(1)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = `0 4px 14px ${color}40`;
+                      }}
+                      onMouseDown={(e) => { e.currentTarget.style.transform = 'translateY(0) scale(0.98)'; }}
+                      onMouseUp={(e) => { e.currentTarget.style.transform = 'translateY(-1px) scale(1)'; }}
+                    >
+                      {t.visitarEnlace}
+                      <ExternalLink size={14} strokeWidth={2.2} />
+                    </button>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ══ MOBILE FAB ══ */}
+      <div style={{ position: 'fixed', bottom: 24, left: 20, right: 20, zIndex: 40, display: 'none' }} className="mobile-fab">
+        <button
           onClick={() => setModalAbierto(true)}
-          className="w-full bg-linear-to-r from-cyan-500 to-teal-500 text-zinc-950 font-black py-4 rounded-xl shadow-[0_8px_30px_rgba(34,211,238,0.25)] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+          style={{ width: '100%', background: '#0071e3', color: '#fff', border: 'none', borderRadius: 9999, padding: '15px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 8px 32px rgba(0,113,227,0.30)' }}
         >
-          <PlusCircle className="h-5 w-5 stroke-[2.5]" />
-          <span className="text-base tracking-tight">{t.reportar}</span>
+          <PlusCircle size={18} />
+          {t.reportar}
         </button>
       </div>
 
-      {/* --- MODAL DE REPORTAR DATOS --- */}
+      {/* ══ FOOTER ══ */}
+      <footer style={{ background: '#fff', borderTop: '1px solid rgba(0,0,0,0.06)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 40 }}>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#1d1d1f', marginBottom: 10 }}>Ayuda Venezuela</div>
+            <p style={{ fontSize: 13, fontWeight: 500, color: '#86868b', lineHeight: 1.6 }}>
+              Centralizando la coordinación humanitaria y transparencia de emergencia para Venezuela.
+            </p>
+          </div>
+          <div>
+            <h4 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#1d1d1f', marginBottom: 14 }}>Enlaces Rápidos</h4>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {['Recursos de Emergencia', 'Materiales de Ayuda', 'Reportes'].map((l) => (
+                <li key={l}><a href="#" style={{ fontSize: 13, fontWeight: 500, color: '#86868b', textDecoration: 'none' }}>{l}</a></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h4 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#1d1d1f', marginBottom: 14 }}>Conectar</h4>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {['Portal de Voluntarios', 'Contáctanos', 'Privacidad'].map((l) => (
+                <li key={l}><a href="#" style={{ fontSize: 13, fontWeight: 500, color: '#86868b', textDecoration: 'none' }}>{l}</a></li>
+              ))}
+            </ul>
+          </div>
+          <div style={{ background: '#F5F5F7', borderRadius: 16, padding: 18 }}>
+            <h4 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#86868b', marginBottom: 12 }}>Estado del Sistema</h4>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#34c759' }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#1d1d1f' }}>Todos los sistemas operacionales</span>
+            </div>
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86868b' }}>© 2025 Ayuda Venezuela</p>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* ══ MODAL ══ */}
       {modalAbierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#09090b] border border-zinc-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
-            
-            <div className="px-6 py-4 border-b border-zinc-900 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Globe className="h-5 w-5 text-cyan-400" />
-                <h3 className="text-lg font-black text-white">Reportar Enlace o Sitio Web</h3>
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'rgba(0,0,0,0.40)', backdropFilter: 'blur(10px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+        >
+          <div
+            className="apple-card fade-in-up"
+            style={{ width: '100%', maxWidth: 490, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: 24, boxShadow: '0 32px 80px rgba(0,0,0,0.18)', background: '#fff' }}
+          >
+            {/* Header */}
+            <div style={{ padding: '20px 22px', borderBottom: '1px solid #F5F5F7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, background: '#F5F5F7', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Globe size={17} color="#0071e3" />
+                </div>
+                <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1d1d1f' }}>{t.modalTitulo}</h2>
               </div>
-              <button 
-                onClick={() => { setModalAbierto(false); setNotificacion({ tipo: '', texto: '' }); }}
-                className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
-              >
-                <X className="h-4 w-4" />
+              <button onClick={closeModal} style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: '#F5F5F7', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#86868b' }}>
+                <X size={15} />
               </button>
             </div>
 
-            <form onSubmit={manejarEnvioReporte} className="p-6 space-y-4 overflow-y-auto">
-              
+            {/* Form */}
+            <form onSubmit={handleSubmit} style={{ padding: 22, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }} noValidate>
+
               {notificacion.texto && (
-                <div className={`p-4 rounded-xl border text-xs font-semibold flex items-start gap-2.5 ${
-                  notificacion.tipo === 'exito' 
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                    : 'bg-red-500/10 border-red-500/30 text-red-400'
-                }`}>
-                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                  <span>{notificacion.texto}</span>
+                <div style={{ padding: '12px 14px', borderRadius: 12, border: `1.5px solid ${notifColors.border}`, background: notifColors.bg, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <AlertTriangle size={15} color={notifColors.icon} style={{ marginTop: 1, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: notifColors.text }}>{notificacion.texto}</span>
                 </div>
               )}
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Título del Sitio *</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="Ej: Registro Civil Digital, Telemedicina Gratuita..."
-                  value={formulario.titulo}
-                  onChange={(e) => setFormulario({ ...formulario, titulo: e.target.value })}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500/80 transition-colors"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Dirección URL (Link) *</label>
-                <input 
-                  type="url" 
-                  required
-                  placeholder="https://ejemplo.com/recurso"
-                  value={formulario.url}
-                  onChange={(e) => setFormulario({ ...formulario, url: e.target.value })}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500/80 transition-colors"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Categoría / Etiqueta</label>
-                  <input 
-                    type="text" 
-                    placeholder="Ej: Salud, Oficial, Donaciones..."
-                    value={formulario.categoria}
-                    onChange={(e) => setFormulario({ ...formulario, categoria: e.target.value })}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500/80 transition-colors"
+              {[
+                { label: t.campoTitulo,    type: 'text', key: 'titulo',      placeholder: 'Ej: Registro Civil Digital...' },
+                { label: t.campoUrl,       type: 'url',  key: 'url',         placeholder: 'https://ejemplo.com' },
+              ].map(({ label, type, key, placeholder }) => (
+                <div key={key}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86868b', marginBottom: 8 }}>{label}</label>
+                  <input
+                    type={type} required placeholder={placeholder}
+                    value={formulario[key]}
+                    onChange={(e) => setFormulario({ ...formulario, [key]: e.target.value })}
+                    style={{ width: '100%', background: '#F5F5F7', border: '1.5px solid #d2d2d7', borderRadius: 12, padding: '12px 16px', fontSize: 15, fontFamily: 'inherit', color: '#1d1d1f', outline: 'none' }}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Alcance</label>
-                  <div className="w-full bg-zinc-900/50 border border-zinc-900 text-zinc-500 rounded-xl px-4 py-3 text-sm select-none">
-                    Nacional / Web
-                  </div>
+              ))}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86868b', marginBottom: 8 }}>{t.campoCategoria}</label>
+                  <input type="text" placeholder="Salud, Oficial..." value={formulario.categoria} onChange={(e) => setFormulario({ ...formulario, categoria: e.target.value })} style={{ width: '100%', background: '#F5F5F7', border: '1.5px solid #d2d2d7', borderRadius: 12, padding: '12px 16px', fontSize: 15, fontFamily: 'inherit', color: '#1d1d1f', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86868b', marginBottom: 8 }}>{t.campoAlcance}</label>
+                  <div style={{ background: '#F5F5F7', border: '1.5px solid #d2d2d7', borderRadius: 12, padding: '12px 16px', fontSize: 14, color: '#86868b', fontWeight: 500 }}>{t.alcanceValor}</div>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Descripción del recurso *</label>
-                <textarea 
-                  required
-                  rows={3}
-                  placeholder="Describe brevemente qué información provee este enlace y cómo ayuda a los ciudadanos..."
-                  value={formulario.descripcion}
-                  onChange={(e) => setFormulario({ ...formulario, descripcion: e.target.value })}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500/80 transition-colors resize-none"
-                />
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#86868b', marginBottom: 8 }}>{t.campoDescripcion}</label>
+                <textarea required rows={3} placeholder="Describe brevemente qué información provee este enlace..." value={formulario.descripcion} onChange={(e) => setFormulario({ ...formulario, descripcion: e.target.value })} style={{ width: '100%', background: '#F5F5F7', border: '1.5px solid #d2d2d7', borderRadius: 12, padding: '12px 16px', fontSize: 15, fontFamily: 'inherit', color: '#1d1d1f', outline: 'none', resize: 'none' }} />
               </div>
 
-              <div className="pt-2">
-                <button 
-                  type="submit"
-                  disabled={enviando || notificacion.tipo === 'exito'}
-                  className="w-full bg-linear-to-r from-cyan-500 to-teal-500 text-zinc-950 font-extrabold py-3.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(34,211,238,0.15)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {enviando ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin"></div>
-                      <span>Procesando...</span>
-                    </>
-                  ) : (
-                    <span>Enviar para Moderación</span>
-                  )}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={enviando || notificacion.tipo === 'exito'}
+                style={{ width: '100%', background: enviando || notificacion.tipo === 'exito' ? '#d2d2d7' : '#0071e3', color: '#fff', border: 'none', borderRadius: 9999, padding: '14px 0', fontSize: 15, fontWeight: 700, cursor: enviando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              >
+                {enviando ? (
+                  <>
+                    <div style={{ width: 15, height: 15, border: '2.5px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%' }} className="spinner" />
+                    {t.btnProcesando}
+                  </>
+                ) : t.btnEnviar}
+              </button>
             </form>
-
           </div>
         </div>
       )}
 
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+      {/* Responsive */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media (max-width: 640px) {
+          .mobile-fab { display: flex !important; }
         }
-        .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+        @media (max-width: 768px) {
+          nav { display: none !important; }
+        }
       `}} />
-    </main>
+    </div>
   );
 }
