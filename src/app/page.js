@@ -8,7 +8,7 @@ import {
   HeartPulse, Landmark, Gift, Truck, Radio, BookOpen,
   ShieldCheck, Users, Building2, Megaphone, FlaskConical,
   CheckCircle2, GraduationCap, Newspaper, Cpu, Utensils,
-  Zap, HandHeart, Wifi, Heart,
+  Zap, HandHeart, Wifi, Heart, Menu,
 } from 'lucide-react';
 
 /*
@@ -19,7 +19,7 @@ import {
 */
 const CATEGORY_MAP = {
   'Salud':         { Icon: HeartPulse,    bg: '#fff0f0', color: '#ff3b30', grad: 'linear-gradient(135deg,#ff3b30,#ff6b6b)' },
-  'Oficial':       { Icon: Landmark,      bg: '#e8f1ff', color: '#0071e3', grad: 'linear-gradient(135deg,#0071e3,#34aadc)' },
+  'Oficial':       { Icon: Landmark,      bg: '#e8f1ff', color: '#003cc3', grad: 'linear-gradient(135deg,#003cc3,#34aadc)' },
   'Gobierno':      { Icon: Building2,     bg: '#eeeeff', color: '#5856d6', grad: 'linear-gradient(135deg,#5856d6,#a78bfa)' },
   'Donaciones':    { Icon: HandHeart,     bg: '#fff4e0', color: '#ff9500', grad: 'linear-gradient(135deg,#ff9500,#ffcc02)' },
   'Logística':     { Icon: Truck,         bg: '#fff8e1', color: '#f59e0b', grad: 'linear-gradient(135deg,#f59e0b,#fcd34d)' },
@@ -43,7 +43,7 @@ function getCategoryStyle(categoria) {
 const i18n = {
   es: {
     titulo:        'Ayuda Venezuela',
-    subtitulo:     'Directorio de Recursos de Auxilio',
+    subtitulo:     'Directorio de páginas web de emergencia',
     descripcion:   'Colección verificada de recursos web dedicados a la ayuda humanitaria, respuesta de emergencia y coordinación logística en Venezuela.',
     buscar:        'Buscar recursos, categorías, nombres...',
     reportar:      'Reportar Enlace',
@@ -133,6 +133,7 @@ export default function Home() {
   const [formulario, setFormulario]     = useState({ titulo: '', url: '', descripcion: '', categoria: '' });
   const [enviando, setEnviando]         = useState(false);
   const [notificacion, setNotificacion] = useState({ tipo: '', texto: '' });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const t = i18n[idioma];
 
@@ -228,13 +229,13 @@ export default function Home() {
           </a>
 
           {/* Desktop nav */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-            <a href="#directorio" style={{ fontSize: 14, fontWeight: 600, color: '#0071e3', textDecoration: 'none' }}>Directorio</a>
+          <nav className="desktop-nav" style={{ gap: 24 }}>
+            <a href="#directorio" style={{ fontSize: 14, fontWeight: 600, color: '#003cc3', textDecoration: 'none' }}>Directorio</a>
             <a href="#" onClick={(e) => { e.preventDefault(); setModalAbierto(true); }} style={{ fontSize: 14, fontWeight: 500, color: '#86868b', textDecoration: 'none' }}>Reportar</a>
           </nav>
 
-          {/* Right actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Desktop Actions */}
+          <div className="desktop-nav" style={{ alignItems: 'center', gap: 8 }}>
             <button onClick={cargarDatos} title={t.refrescar} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, color: '#86868b', display: 'flex', alignItems: 'center' }}>
               <RefreshCw size={16} className={cargando ? 'spinner' : ''} />
             </button>
@@ -245,12 +246,84 @@ export default function Home() {
             <a href="/admin/login" style={{ background: 'none', border: '1.5px solid #d2d2d7', borderRadius: 9999, padding: '6px 15px', fontSize: 13, fontWeight: 600, color: '#1d1d1f', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
               Iniciar Sesión
             </a>
-            <button onClick={() => setModalAbierto(true)} style={{ background: '#0071e3', color: '#fff', border: 'none', borderRadius: 9999, padding: '7px 17px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            <button
+              onClick={() => setModalAbierto(true)}
+              style={{
+                background: 'rgba(0, 113, 227, 0.08)', color: '#003cc3',
+                border: 'none', borderRadius: 9999, padding: '7px 17px',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                transition: 'background 0.15s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0, 113, 227, 0.15)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0, 113, 227, 0.08)'; }}
+            >
               {t.reportar}
             </button>
           </div>
+
+          {/* Mobile Menu Toggle Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="mobile-menu-btn"
+            aria-label="Toggle navigation menu"
+            style={{ display: 'none' }} /* overridden by className */
+          >
+            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
         </div>
       </header>
+
+      {/* ══ MOBILE MENU PANEL ══ */}
+      {mobileMenuOpen && (
+        <div className="fade-in" style={{
+          position: 'fixed', top: 56, left: 0, right: 0, bottom: 0,
+          background: 'rgba(255, 255, 255, 0.96)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          zIndex: 49, display: 'flex', flexDirection: 'column', padding: '28px 24px',
+          gap: 20
+        }}>
+          <a
+            href="#directorio"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{ fontSize: 18, fontWeight: 700, color: '#1d1d1f', textDecoration: 'none', padding: '12px 0', borderBottom: '1px solid #e8e8ed', display: 'block' }}
+          >
+            Directorio
+          </a>
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); setMobileMenuOpen(false); setModalAbierto(true); }}
+            style={{ fontSize: 18, fontWeight: 700, color: '#1d1d1f', textDecoration: 'none', padding: '12px 0', borderBottom: '1px solid #e8e8ed', display: 'block' }}
+          >
+            {t.reportar}
+          </a>
+          <a
+            href="/admin/login"
+            style={{ fontSize: 18, fontWeight: 700, color: '#1d1d1f', textDecoration: 'none', padding: '12px 0', borderBottom: '1px solid #e8e8ed', display: 'block' }}
+          >
+            Iniciar Sesión
+          </a>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#86868b' }}>Idioma / Language</span>
+            <button
+              onClick={() => setIdioma(idioma === 'es' ? 'en' : 'es')}
+              style={{ background: 'none', border: '1.5px solid #d2d2d7', borderRadius: 9999, padding: '7px 18px', fontSize: 14, fontWeight: 600, color: '#1d1d1f', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Languages size={15} color="#86868b" />
+              {idioma === 'es' ? 'English (EN)' : 'Español (ES)'}
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#86868b' }}>Actualizar datos</span>
+            <button
+              onClick={() => { cargarDatos(); setMobileMenuOpen(false); }}
+              style={{ background: '#F5F5F7', border: '1.5px solid #d2d2d7', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#1d1d1f' }}
+            >
+              <RefreshCw size={16} className={cargando ? 'spinner' : ''} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ══ HERO ══ */}
       <section style={{ maxWidth: 1280, margin: '0 auto', padding: '48px 24px 32px' }}>
@@ -283,7 +356,7 @@ export default function Home() {
                 borderRadius: 12, padding: '10px 14px 10px 38px',
                 fontSize: 14, fontFamily: 'inherit', color: '#1d1d1f', outline: 'none',
               }}
-              onFocus={(e) => { e.target.style.borderColor = '#0071e3'; e.target.style.boxShadow = '0 0 0 3px rgba(0,113,227,0.12)'; }}
+              onFocus={(e) => { e.target.style.borderColor = '#003cc3'; e.target.style.boxShadow = '0 0 0 3px rgba(0,113,227,0.12)'; }}
               onBlur={(e)  => { e.target.style.borderColor = '#e8e8ed'; e.target.style.boxShadow = 'none'; }}
             />
           </div>
@@ -306,8 +379,8 @@ export default function Home() {
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: active ? '8px 16px' : '7px 14px',
                     borderRadius: 9999,
-                    border: active ? '2px solid #0071e3' : '1.5px solid transparent',
-                    background: active ? '#0071e3' : '#F5F5F7',
+                    border: active ? '2px solid #003cc3' : '1.5px solid transparent',
+                    background: active ? '#003cc3' : '#F5F5F7',
                     color: !m.habilitado ? '#c7c7cc' : active ? '#fff' : '#1d1d1f',
                     fontFamily: 'inherit', fontWeight: 600, fontSize: 13,
                     cursor: m.habilitado ? 'pointer' : 'not-allowed',
@@ -342,7 +415,7 @@ export default function Home() {
 
         {cargando ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 0', gap: 14 }}>
-            <div style={{ width: 34, height: 34, border: '3px solid #d2d2d7', borderTopColor: '#0071e3', borderRadius: '50%' }} className="spinner" />
+            <div style={{ width: 34, height: 34, border: '3px solid #d2d2d7', borderTopColor: '#003cc3', borderRadius: '50%' }} className="spinner" />
             <p style={{ color: '#86868b', fontSize: 14, fontWeight: 500 }}>{t.cargando}</p>
           </div>
         ) : datosFiltrados.length === 0 ? (
@@ -355,26 +428,28 @@ export default function Home() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18 }}>
             {datosFiltrados.map((item, i) => {
-              const { Icon, bg, color, grad } = getCategoryStyle(item.categoria);
+              const { Icon, bg, color } = getCategoryStyle(item.categoria);
               return (
                 <article
                   key={item.id}
                   className="apple-card fade-in-up"
                   style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 0, animationDelay: `${i * 0.04}s` }}
                 >
-                  {/* ── Card header: icon + verified badge ── */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+                  {/* ── Card tags ── */}
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                    
+                    {/* Category tag */}
+                    {item.categoria && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+                        background: bg, color: color,
+                        padding: '3px 9px', borderRadius: 6,
+                      }}>
+                        {item.categoria}
+                      </span>
+                    )}
 
-                    {/* Category icon — colored background unique per category */}
-                    <div style={{
-                      width: 48, height: 48, borderRadius: 14, flexShrink: 0,
-                      background: bg,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <Icon size={22} color={color} strokeWidth={1.8} />
-                    </div>
-
-                    {/* Verified badge — green, with checkmark */}
+                    {/* Verified badge */}
                     <div style={{
                       display: 'inline-flex', alignItems: 'center', gap: 4,
                       background: 'rgba(52,199,89,0.10)',
@@ -390,18 +465,6 @@ export default function Home() {
 
                   {/* ── Card body ── */}
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-
-                    {/* Category tag — uses the category's own color */}
-                    {item.categoria && (
-                      <span style={{
-                        display: 'inline-block', alignSelf: 'flex-start',
-                        fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
-                        background: bg, color: color,
-                        padding: '3px 9px', borderRadius: 6, marginBottom: 10,
-                      }}>
-                        {item.categoria}
-                      </span>
-                    )}
 
                     {/* Title — primary content, largest text on card */}
                     <h3 style={{
@@ -429,26 +492,26 @@ export default function Home() {
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
                         width: '100%', padding: '11px 16px',
-                        background: grad,
+                        background: '#003cc3',
                         border: 'none',
                         borderRadius: 12,
                         cursor: 'pointer',
                         color: '#fff',
                         fontFamily: 'inherit', fontWeight: 600, fontSize: 14,
                         letterSpacing: '0.01em',
-                        boxShadow: `0 4px 14px ${color}40`,
+                        boxShadow: `0 4px 14px rgba(0, 60, 195, 0.4)`,
                         transition: 'filter 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease',
                         marginTop: 4,
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.filter = 'brightness(1.1)';
                         e.currentTarget.style.transform = 'translateY(-1px)';
-                        e.currentTarget.style.boxShadow = `0 8px 20px ${color}55`;
+                        e.currentTarget.style.boxShadow = `0 8px 20px rgba(0, 60, 195, 0.55)`;
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.filter = 'brightness(1)';
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = `0 4px 14px ${color}40`;
+                        e.currentTarget.style.boxShadow = `0 4px 14px rgba(0, 60, 195, 0.4)`;
                       }}
                       onMouseDown={(e) => { e.currentTarget.style.transform = 'translateY(0) scale(0.98)'; }}
                       onMouseUp={(e) => { e.currentTarget.style.transform = 'translateY(-1px) scale(1)'; }}
@@ -465,13 +528,21 @@ export default function Home() {
       </div>
 
       {/* ══ MOBILE FAB ══ */}
-      <div style={{ position: 'fixed', bottom: 24, left: 20, right: 20, zIndex: 40, display: 'none' }} className="mobile-fab">
+      <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 40, display: 'none' }} className="mobile-fab">
         <button
           onClick={() => setModalAbierto(true)}
-          style={{ width: '100%', background: '#0071e3', color: '#fff', border: 'none', borderRadius: 9999, padding: '15px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 8px 32px rgba(0,113,227,0.30)' }}
+          style={{
+            width: 50, height: 50, borderRadius: '50%',
+            background: 'rgba(0, 113, 227, 0.95)', backdropFilter: 'blur(10px)',
+            color: '#fff', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 6px 20px rgba(0, 113, 227, 0.35)', transition: 'transform 0.15s ease'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+          title={t.reportar}
         >
-          <PlusCircle size={18} />
-          {t.reportar}
+          <PlusCircle size={22} />
         </button>
       </div>
 
@@ -523,13 +594,25 @@ export default function Home() {
         >
           <div
             className="apple-card fade-in-up"
-            style={{ width: '100%', maxWidth: 490, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: 24, boxShadow: '0 32px 80px rgba(0,0,0,0.18)', background: '#fff' }}
+            style={{ width: '100%', maxWidth: 490, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: 24, boxShadow: '0 32px 80px rgba(0,0,0,0.18)', background: '#fff', position: 'relative' }}
           >
+            {/* Loader overlay during submission */}
+            {enviando && (
+              <div style={{
+                position: 'absolute', inset: 0, background: 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', zIndex: 10,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12
+              }}>
+                <div style={{ width: 38, height: 38, border: '3.5px solid #d2d2d7', borderTopColor: '#003cc3', borderRadius: '50%' }} className="spinner" />
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#1d1d1f' }}>{t.btnProcesando}</span>
+              </div>
+            )}
+
             {/* Header */}
             <div style={{ padding: '20px 22px', borderBottom: '1px solid #F5F5F7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 34, height: 34, background: '#F5F5F7', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Globe size={17} color="#0071e3" />
+                  <Globe size={17} color="#003cc3" />
                 </div>
                 <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1d1d1f' }}>{t.modalTitulo}</h2>
               </div>
@@ -582,14 +665,9 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={enviando || notificacion.tipo === 'exito'}
-                style={{ width: '100%', background: enviando || notificacion.tipo === 'exito' ? '#d2d2d7' : '#0071e3', color: '#fff', border: 'none', borderRadius: 9999, padding: '14px 0', fontSize: 15, fontWeight: 700, cursor: enviando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                style={{ width: '100%', background: enviando || notificacion.tipo === 'exito' ? '#d2d2d7' : '#003cc3', color: '#fff', border: 'none', borderRadius: 9999, padding: '14px 0', fontSize: 15, fontWeight: 700, cursor: enviando ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
-                {enviando ? (
-                  <>
-                    <div style={{ width: 15, height: 15, border: '2.5px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%' }} className="spinner" />
-                    {t.btnProcesando}
-                  </>
-                ) : t.btnEnviar}
+                {t.btnEnviar}
               </button>
             </form>
           </div>
