@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Chart } from 'chart.js/auto';
 import { 
   Globe, Clock, Eye, MousePointerClick, ArrowRight,
-  RefreshCw, AlertTriangle, BarChart3, LineChart
+  RefreshCw, AlertTriangle, BarChart3, LineChart, LoaderCircle
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -222,7 +222,7 @@ export default function AdminDashboardHome() {
   if (cargando) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <LoaderCircle className="w-8 h-8 text-primary animate-spin" />
         <p className="text-muted-foreground text-xs lg:text-sm font-medium">Consultando métricas de analíticas...</p>
       </div>
     );

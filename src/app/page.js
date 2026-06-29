@@ -8,7 +8,7 @@ import {
   HeartPulse, Landmark, Gift, Truck, Radio, BookOpen,
   ShieldCheck, Users, Building2, Megaphone, FlaskConical,
   CheckCircle2, GraduationCap, Newspaper, Cpu, Utensils,
-  Zap, HandHeart, Wifi, Heart, Menu,
+  Zap, HandHeart, Wifi, Heart, Menu, LoaderCircle,
 } from 'lucide-react';
 
 /*
@@ -728,7 +728,7 @@ export default function Home() {
             className="apple-card fade-in-up"
             style={{ width: '100%', maxWidth: 490, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: 24, boxShadow: '0 32px 80px rgba(0,0,0,0.18)', background: '#fff', position: 'relative' }}
           >
-            {/* Loader overlay during submission */}
+            {/* LoaderCircle overlay during submission */}
             {enviando && (
               <div style={{
                 position: 'absolute', inset: 0, background: 'rgba(255, 255, 255, 0.8)',

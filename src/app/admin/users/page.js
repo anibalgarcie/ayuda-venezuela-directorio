@@ -7,7 +7,7 @@ import * as z from 'zod';
 import { supabase } from '@/lib/supabase';
 import { 
   Users, UserPlus, Trash2, Shield, ShieldCheck, 
-  Loader2, RefreshCw, AlertTriangle, KeyRound, Mail, UserCog
+  LoaderCircle, RefreshCw, AlertTriangle, KeyRound, Mail, UserCog
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -205,7 +205,7 @@ export default function AdminUsers() {
       <Card>
         {cargando ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+            <LoaderCircle className="h-8 w-8 text-primary animate-spin" />
             <p className="text-muted-foreground text-xs font-semibold">Cargando lista de personal...</p>
           </div>
         ) : usuarios.length === 0 ? (

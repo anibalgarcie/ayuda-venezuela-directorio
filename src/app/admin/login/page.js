@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { LogIn, KeyRound, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { LogIn, KeyRound, Mail, AlertCircle, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -133,7 +133,7 @@ export default function AdminLogin() {
                 >
                   {cargando ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
                       <span>Verificando...</span>
                     </>
                   ) : (

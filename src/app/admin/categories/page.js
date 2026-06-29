@@ -158,7 +158,7 @@ export default function AdminCategories() {
             type="text"
             placeholder="Buscar categoría..."
             value={busqueda}
-            onChange={(e) => setFiltroAprobado ? setBusqueda(e.target.value) : setBusqueda(e.target.value)}
+            onChange={(e) => setBusqueda(e.target.value)}
             className="pl-9"
           />
         </div>

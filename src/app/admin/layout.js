@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { 
-  LayoutDashboard, Globe, Users, LogOut, Loader2, Menu, X, ArrowLeft, Tags, Moon, Sun, ChevronRight
+  LayoutDashboard, Globe, Users, LogOut, LoaderCircle, Menu, X, ArrowLeft, Tags, Moon, Sun, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -91,7 +91,7 @@ export default function AdminLayout({ children }) {
   if (cargando && !esPaginaLogin) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        <LoaderCircle className="h-10 w-10 text-primary animate-spin" />
         <p className="text-muted-foreground font-medium text-sm tracking-wide">Validando credenciales de acceso...</p>
       </div>
     );
