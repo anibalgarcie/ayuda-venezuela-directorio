@@ -153,8 +153,14 @@ export default function AdminDirectories() {
 
   // Filtrar localmente por búsqueda de texto
   const datosFiltrados = datos.filter(item => {
-    const texto = `${item.titulo} ${item.categoria} ${item.descripcion} ${item.url}`.toLowerCase();
-    return texto.includes(busqueda.toLowerCase());
+    const q = busqueda.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (item.titulo || '').toLowerCase().includes(q) ||
+      (item.descripcion || '').toLowerCase().includes(q) ||
+      (item.categoria || '').toLowerCase().includes(q) ||
+      (item.url || '').toLowerCase().includes(q)
+    );
   });
 
   return (

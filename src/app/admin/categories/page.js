@@ -109,8 +109,9 @@ export default function AdminCategories() {
 
   // Filtrar localmente por búsqueda de texto
   const datosFiltrados = datos.filter(item => {
-    const texto = `${item.nombre}`.toLowerCase();
-    return texto.includes(busqueda.toLowerCase());
+    const q = busqueda.toLowerCase().trim();
+    if (!q) return true;
+    return (item.nombre || '').toLowerCase().includes(q);
   });
 
   return (
