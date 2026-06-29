@@ -192,7 +192,7 @@ export default function AdminLogin() {
           )}
 
           {/* Formulario */}
-          <form onSubmit={handleSubmit(handleLogin)} noValidate>
+          <form onSubmit={handleSubmit(handleLogin)} method="post" noValidate>
 
             {/* Campo Email */}
             <div style={{ marginBottom: '20px' }}>
