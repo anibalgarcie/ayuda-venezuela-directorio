@@ -2,25 +2,53 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { LogIn, KeyRound, Mail, AlertCircle, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form';
+
+// Schema validation using Zod
+const loginSchema = z.object({
+  email: z.string().min(1, { message: 'El correo electrónico es requerido.' }).email({ message: 'El formato de correo no es válido.' }),
+  password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres.' }),
+});
 
 export default function AdminLogin() {
   const router = useRouter();
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
   const [cargando, setCargando] = useState(false);
-  const [error, setError]       = useState(null);
+  const [errorGlobal, setErrorGlobal] = useState(null);
+
+  const form = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
   useEffect(() => {
     async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
+      
       const { data: profile } = await supabase
-        .from('profiles').select('role').eq('id', session.user.id).single();
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+        
       if (profile && (profile.role === 'admin' || profile.role === 'moderator')) {
         router.replace('/admin');
       }
@@ -28,16 +56,21 @@ export default function AdminLogin() {
     checkSession();
   }, [router]);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async (valores) => {
     setCargando(true);
-    setError(null);
+    setErrorGlobal(null);
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: valores.email,
+        password: valores.password,
+      });
       if (authError) throw authError;
 
       const { data: profile, error: profileError } = await supabase
-        .from('profiles').select('role').eq('id', data.user.id).single();
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
 
       if (profileError || !profile) {
         await supabase.auth.signOut();
@@ -47,9 +80,10 @@ export default function AdminLogin() {
         await supabase.auth.signOut();
         throw new Error('Acceso restringido. No tienes permisos para el panel de administración.');
       }
+      
       router.replace('/admin');
     } catch (err) {
-      setError(err.message || 'Error inesperado al iniciar sesión.');
+      setErrorGlobal(err.message || 'Error inesperado al iniciar sesión.');
       setCargando(false);
     }
   };
@@ -84,66 +118,78 @@ export default function AdminLogin() {
 
           <Card className="shadow-lg">
             <CardContent className="pt-6">
-              {error && (
+              {errorGlobal && (
                 <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl flex items-start gap-2.5 text-xs">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                  <span>{error}</span>
+                  <span>{errorGlobal}</span>
                 </div>
               )}
 
-              <form onSubmit={handleLogin} className="space-y-4" noValidate>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Correo Electrónico
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      required
-                      placeholder="admin@correo.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleLogin)} className="space-y-4" noValidate>
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Correo Electrónico</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type="email"
+                              placeholder="admin@correo.com"
+                              className="pl-9"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Contraseña
-                  </label>
-                  <div className="relative">
-                    <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="password"
-                      required
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contraseña</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type="password"
+                              placeholder="••••••••"
+                              className="pl-9"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <Button
-                  type="submit"
-                  disabled={cargando}
-                  className="w-full font-bold mt-2"
-                >
-                  {cargando ? (
-                    <>
-                      <LoaderCircle className="h-4 w-4 animate-spin" />
-                      <span>Verificando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="h-4 w-4" />
-                      <span>Ingresar al Panel</span>
-                    </>
-                  )}
-                </Button>
-              </form>
+                  <Button
+                    type="submit"
+                    disabled={cargando}
+                    className="w-full font-bold mt-2"
+                  >
+                    {cargando ? (
+                      <>
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                        <span>Verificando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="h-4 w-4" />
+                        <span>Ingresar al Panel</span>
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </Form>
             </CardContent>
           </Card>
         </div>

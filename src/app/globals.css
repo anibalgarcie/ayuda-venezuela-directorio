@@ -44,9 +44,11 @@
   --input: #e4e4e7;
   --ring: #003cc3;
 
+  --color-primary:    #003cc3;
   --color-bg:         #F5F5F7;
   --color-surface:    #ffffff;
   --color-text:       #1d1d1f;
+  --color-muted:      #86868b;
   --color-outline:    #d2d2d7;
   --color-success:    #34c759;
   --color-danger:     #ff3b30;
