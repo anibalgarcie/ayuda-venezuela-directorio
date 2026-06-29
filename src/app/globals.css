@@ -80,6 +80,12 @@
   --border: #1e1e24;
   --input: #1e1e24;
   --ring: #003cc3;
+
+  --color-bg: #09090b;
+  --color-text: #fafafa;
+  --color-surface: #0d0d11;
+  --color-outline: #1e1e24;
+  --color-muted: #a1a1aa;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

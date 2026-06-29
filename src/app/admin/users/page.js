@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { 
   Users, UserPlus, Trash2, Shield, ShieldCheck, 
@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell
@@ -22,6 +23,9 @@ import {
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel
 } from '@/components/ui/alert-dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 
 // Zod Schema
 const schema = z.object({
@@ -41,7 +45,7 @@ export default function AdminUsers() {
   
   const [errorForm, setErrorForm] = useState(null);
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { email: '', password: '', role: 'moderator' }
   });
@@ -243,19 +247,23 @@ export default function AdminUsers() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <select
+                    <Select
                       value={user.role}
                       disabled={user.id === usuarioActual?.id}
-                      onChange={(e) => handleChangeRole(user.id, e.target.value)}
-                      className={`text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg border bg-transparent text-foreground cursor-pointer focus:outline-none transition-all ${
-                        user.role === 'admin' 
-                          ? 'border-primary/20 text-primary' 
-                          : 'border-amber-500/20 text-amber-500'
-                      } disabled:opacity-60 disabled:cursor-not-allowed`}
+                      onValueChange={(val) => handleChangeRole(user.id, val)}
                     >
-                      <option value="admin">Administrador</option>
-                      <option value="moderator">Moderador</option>
-                    </select>
+                      <SelectTrigger className="h-8 w-36 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">
+                          <span className="font-semibold text-primary">Administrador</span>
+                        </SelectItem>
+                        <SelectItem value="moderator">
+                          <span className="font-semibold text-amber-600">Moderador</span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {user.created_at ? new Date(user.created_at).toLocaleDateString('es-VE', {
@@ -302,13 +310,13 @@ export default function AdminUsers() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Email */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Correo Electrónico
-              </label>
+              <Label htmlFor="user-email">Correo Electrónico</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
+                  id="user-email"
                   type="email"
                   {...register('email')}
                   placeholder="staff@emergencia.com"
@@ -318,13 +326,13 @@ export default function AdminUsers() {
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
 
+            {/* Password */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Contraseña Temporal
-              </label>
+              <Label htmlFor="user-password">Contraseña Temporal</Label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
+                  id="user-password"
                   type="password"
                   {...register('password')}
                   placeholder="Mínimo 6 caracteres"
@@ -334,17 +342,21 @@ export default function AdminUsers() {
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
             </div>
 
+            {/* Rol */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Rol de Acceso
-              </label>
-              <select
-                {...register('role')}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-card text-foreground"
+              <Label htmlFor="user-role">Rol de Acceso</Label>
+              <Select
+                defaultValue="moderator"
+                onValueChange={(val) => setValue('role', val, { shouldValidate: true })}
               >
-                <option value="moderator">Moderador (Solo Directorio)</option>
-                <option value="admin">Administrador (Acceso Total)</option>
-              </select>
+                <SelectTrigger id="user-role">
+                  <SelectValue placeholder="Seleccionar rol..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="moderator">Moderador (Solo Directorio)</SelectItem>
+                  <SelectItem value="admin">Administrador (Acceso Total)</SelectItem>
+                </SelectContent>
+              </Select>
               {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
             </div>
 

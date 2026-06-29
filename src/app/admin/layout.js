@@ -15,7 +15,7 @@ export default function AdminLayout({ children }) {
   const [session, setSession] = useState(null);
   const [perfil, setPerfil] = useState(null);
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
-  const [darkMode, setDarkMode] = useState(true); // Default dark mode for admin
+  const [darkMode, setDarkMode] = useState(false); // Default light mode for admin
 
   const esPaginaLogin = pathname === '/admin/login';
 

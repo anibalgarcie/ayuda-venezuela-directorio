@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { 
   Globe, Search, PlusCircle, Edit2, Trash2, Check, X, 
@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -24,6 +25,9 @@ import {
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel
 } from '@/components/ui/alert-dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 
 // Zod Schema for validation
 const schema = z.object({
@@ -65,8 +69,21 @@ export default function AdminDirectories() {
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     try {
-      const { data: catData } = await supabase.from('categorias_web').select('*').order('nombre', { ascending: true });
-      if (catData) setCategoriasDB(catData);
+      // Fallback default categories
+      const fallbackCategories = [
+        { id: '1', nombre: 'Salud' },
+        { id: '2', nombre: 'Oficial' },
+        { id: '3', nombre: 'Gobierno' },
+        { id: '4', nombre: 'Donaciones' },
+        { id: '5', nombre: 'Logística' },
+        { id: '6', nombre: 'Comunicación' },
+        { id: '7', nombre: 'Educación' },
+        { id: '8', nombre: 'Voluntariado' },
+        { id: '9', nombre: 'Tecnología' },
+        { id: '10', nombre: 'Seguridad' },
+        { id: '11', nombre: 'Alimentos' },
+        { id: '12', nombre: 'Noticias' },
+      ];
 
       let query = supabase.from('directorios_web').select('*');
       
@@ -79,6 +96,16 @@ export default function AdminDirectories() {
       const { data, error } = await query.order('creado_en', { ascending: false });
       if (error) throw error;
       setDatos(data || []);
+
+      // Extract unique categories from directories and combine with fallbacks
+      const dbDirCategories = Array.from(new Set((data || []).map(d => d.categoria).filter(Boolean)));
+      const combined = [...fallbackCategories];
+      dbDirCategories.forEach((catName, idx) => {
+        if (!combined.some(c => c.nombre.toLowerCase() === catName.toLowerCase())) {
+          combined.push({ id: `custom-${idx}`, nombre: catName });
+        }
+      });
+      setCategoriasDB(combined.sort((a, b) => a.nombre.localeCompare(b.nombre)));
     } catch (error) {
       console.error('Error al cargar directorios:', error);
     } finally {
@@ -293,22 +320,19 @@ export default function AdminDirectories() {
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleToggleAprobado(item.id, item.aprobado)}
-                      className="h-7 px-2.5 rounded-full"
-                    >
-                      {item.aprobado ? (
-                        <Badge variant="success" className="gap-1 rounded-full text-[10px]">
-                          <Check className="h-2.5 w-2.5" /> Aprobado
-                        </Badge>
-                      ) : (
-                        <Badge variant="warning" className="gap-1 rounded-full text-[10px]">
-                          <X className="h-2.5 w-2.5" /> Pendiente
-                        </Badge>
-                      )}
-                    </Button>
+                    <div className="flex items-center justify-center gap-2">
+                      <Switch
+                        checked={!!item.aprobado}
+                        onCheckedChange={() => handleToggleAprobado(item.id, item.aprobado)}
+                        aria-label={item.aprobado ? 'Desactivar registro' : 'Activar registro'}
+                      />
+                      <Badge
+                        variant={item.aprobado ? 'success' : 'warning'}
+                        className="rounded-full text-[10px]"
+                      >
+                        {item.aprobado ? 'Aprobado' : 'Pendiente'}
+                      </Badge>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="inline-flex gap-2">
@@ -357,49 +381,54 @@ export default function AdminDirectories() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Título */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Título / Nombre
-              </label>
+              <Label htmlFor="dir-titulo">Título / Nombre</Label>
               <Input
+                id="dir-titulo"
                 {...register('titulo')}
                 placeholder="Ej: SOS Telecomunicaciones"
               />
               {errors.titulo && <p className="text-xs text-destructive">{errors.titulo.message}</p>}
             </div>
 
+            {/* Categoría */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Categoría
-              </label>
-              <select
-                {...register('categoria')}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-card text-foreground"
+              <Label htmlFor="dir-categoria">Categoría</Label>
+              <Select
+                value={watch('categoria') || ''}
+                onValueChange={(val) => setValue('categoria', val, { shouldValidate: true })}
               >
-                <option value="">Seleccionar Categoría...</option>
-                {categoriasDB.map((cat) => (
-                  <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
-                ))}
-              </select>
+                <SelectTrigger id="dir-categoria">
+                  <SelectValue placeholder="Seleccionar categoría..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoriasDB.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.nombre}>
+                      {cat.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.categoria && <p className="text-xs text-destructive">{errors.categoria.message}</p>}
             </div>
 
+            {/* URL */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                URL del Enlace Web
-              </label>
+              <Label htmlFor="dir-url">URL del Enlace Web</Label>
               <Input
+                id="dir-url"
                 {...register('url')}
                 placeholder="https://ejemplo.com"
               />
               {errors.url && <p className="text-xs text-destructive">{errors.url.message}</p>}
             </div>
 
+            {/* Descripción */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Descripción / Detalles
-              </label>
+              <Label htmlFor="dir-descripcion">Descripción / Detalles</Label>
               <Textarea
+                id="dir-descripcion"
                 {...register('descripcion')}
                 placeholder="Explica brevemente de qué trata este enlace web..."
                 rows={3}
@@ -408,10 +437,10 @@ export default function AdminDirectories() {
             </div>
 
             {/* Switch de Aprobación */}
-            <div className="flex items-center justify-between border border-border rounded-xl p-3 bg-muted/20">
+            <div className="flex items-center justify-between border border-border rounded-lg p-3 bg-muted/30">
               <div>
-                <p className="text-xs font-bold">Aprobado / Activo</p>
-                <p className="text-[10px] text-muted-foreground">Los registros aprobados se muestran al público de inmediato.</p>
+                <p className="text-sm font-semibold">Aprobado / Activo</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Los registros aprobados se muestran al público de inmediato.</p>
               </div>
               <Switch
                 checked={aprobadoValue}
@@ -428,7 +457,7 @@ export default function AdminDirectories() {
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Guardar'}
+                {isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Guardar Registro'}
               </Button>
             </DialogFooter>
           </form>

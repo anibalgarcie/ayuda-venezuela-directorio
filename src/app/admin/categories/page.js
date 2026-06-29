@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { 
   Tags, Search, PlusCircle, Edit2, Trash2, RefreshCw, AlertTriangle
@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell
 } from '@/components/ui/table';
@@ -38,21 +39,69 @@ export default function AdminCategories() {
   const [eliminandoId, setEliminandoId] = useState(null);
 
   const [mensajeForm, setMensajeForm] = useState({ tipo: '', texto: '' });
+  const [customCategories, setCustomCategories] = useState([]);
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { nombre: '' }
   });
 
+  // Load custom categories from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('custom_categories');
+      if (stored) {
+        setCustomCategories(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.warn('Could not read custom categories from localStorage:', e);
+    }
+  }, []);
+
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     try {
+      // 1. Get directories from Supabase to count usage
       const { data, error } = await supabase
-        .from('categorias_web')
-        .select('*')
-        .order('nombre', { ascending: true });
+        .from('directorios_web')
+        .select('categoria');
       if (error) throw error;
-      setDatos(data || []);
+
+      // 2. Count categories usage
+      const counts = {};
+      (data || []).forEach(d => {
+        if (d.categoria) {
+          counts[d.categoria] = (counts[d.categoria] || 0) + 1;
+        }
+      });
+
+      // 3. Fallback categories
+      const fallbackCategoryNames = [
+        'Salud', 'Oficial', 'Gobierno', 'Donaciones', 'Logística', 
+        'Comunicación', 'Educación', 'Voluntariado', 'Tecnología', 
+        'Seguridad', 'Alimentos', 'Noticias'
+      ];
+
+      // Retrieve locally saved custom categories
+      let localCustom = [];
+      try {
+        const stored = localStorage.getItem('custom_categories');
+        if (stored) localCustom = JSON.parse(stored);
+      } catch (e) {}
+
+      const uniqueNames = Array.from(new Set([
+        ...fallbackCategoryNames,
+        ...(data || []).map(d => d.categoria).filter(Boolean),
+        ...localCustom
+      ])).sort();
+
+      const catList = uniqueNames.map(name => ({
+        id: name,
+        nombre: name,
+        count: counts[name] || 0
+      }));
+
+      setDatos(catList);
     } catch (error) {
       console.error('Error al cargar categorías:', error);
     } finally {
@@ -72,12 +121,25 @@ export default function AdminCategories() {
   const ejecutarEliminar = async () => {
     if (!eliminandoId) return;
     try {
+      // Update directories in Supabase using this category to clear it
       const { error } = await supabase
-        .from('categorias_web')
-        .delete()
-        .eq('id', eliminandoId);
+        .from('directorios_web')
+        .update({ categoria: '' })
+        .eq('categoria', eliminandoId);
 
       if (error) throw error;
+
+      // Remove from localStorage custom categories
+      try {
+        let localCustom = [];
+        const stored = localStorage.getItem('custom_categories');
+        if (stored) localCustom = JSON.parse(stored);
+        
+        const updated = localCustom.filter(c => c.toLowerCase() !== eliminandoId.toLowerCase());
+        localStorage.setItem('custom_categories', JSON.stringify(updated));
+        setCustomCategories(updated);
+      } catch (e) {}
+
       setDatos(prev => prev.filter(item => item.id !== eliminandoId));
     } catch (error) {
       alert('Error al eliminar registro: ' + error.message);
@@ -103,18 +165,40 @@ export default function AdminCategories() {
 
   const onSubmit = async (values) => {
     setMensajeForm({ tipo: '', texto: '' });
+    const nuevoNombre = values.nombre.trim();
     try {
       if (editandoId) {
+        // Renaming an existing category - Update all directories in Supabase
         const { error } = await supabase
-          .from('categorias_web')
-          .update(values)
-          .eq('id', editandoId);
+          .from('directorios_web')
+          .update({ categoria: nuevoNombre })
+          .eq('categoria', editandoId);
+
         if (error) throw error;
+
+        // Update in localStorage custom categories if present
+        try {
+          let localCustom = [];
+          const stored = localStorage.getItem('custom_categories');
+          if (stored) localCustom = JSON.parse(stored);
+          
+          const updated = localCustom.map(c => c.toLowerCase() === editandoId.toLowerCase() ? nuevoNombre : c);
+          localStorage.setItem('custom_categories', JSON.stringify(updated));
+          setCustomCategories(updated);
+        } catch (e) {}
       } else {
-        const { error } = await supabase
-          .from('categorias_web')
-          .insert([values]);
-        if (error) throw error;
+        // Creating a new category - Add to localStorage custom categories
+        try {
+          let localCustom = [];
+          const stored = localStorage.getItem('custom_categories');
+          if (stored) localCustom = JSON.parse(stored);
+          
+          if (!localCustom.some(c => c.toLowerCase() === nuevoNombre.toLowerCase())) {
+            localCustom.push(nuevoNombre);
+            localStorage.setItem('custom_categories', JSON.stringify(localCustom));
+            setCustomCategories(localCustom);
+          }
+        } catch (e) {}
       }
       setModalAbierto(false);
       cargarDatos();
@@ -238,10 +322,9 @@ export default function AdminCategories() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Nombre de Categoría
-              </label>
+              <Label htmlFor="cat-nombre">Nombre de Categoría</Label>
               <Input
+                id="cat-nombre"
                 {...register('nombre')}
                 placeholder="Ej: Salud"
               />
