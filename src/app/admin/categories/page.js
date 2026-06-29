@@ -223,19 +223,52 @@ export default function AdminCategories() {
                 </tr>
               </thead>
               <tbody>
-                {datosFiltrados.map((item, idx) => (
-                  <tr key={item.id} style={{ borderBottom:'1px solid #f8fafc', background: idx%2===0 ? '#fff' : '#fafbfc', transition:'background 0.1s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background='#f0f4ff'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = idx%2===0 ? '#fff' : '#fafbfc'; }}
-                  >
-                    <td style={{ padding:'13px 16px' }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-                        <div style={{ width:'32px', height:'32px', borderRadius:'8px', background:'#eef2ff', color:'#4f46e5', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                          <IconTag />
+                {datosFiltrados.map((item, idx) => {
+                  const getCategoryBadgeStyle = (cat) => {
+                    const c = (cat || 'General').toLowerCase().trim();
+                    const map = {
+                      salud:        { color: '#dc2626', bg: '#fef2f2' },
+                      oficial:      { color: '#0f766e', bg: '#f0fdfa' },
+                      gobierno:     { color: '#1d4ed8', bg: '#eff6ff' },
+                      donaciones:   { color: '#b45309', bg: '#fffbeb' },
+                      logística:    { color: '#7c3aed', bg: '#f5f3ff' },
+                      comunicación: { color: '#0369a1', bg: '#f0f9ff' },
+                      educación:    { color: '#047857', bg: '#ecfdf5' },
+                      voluntariado: { color: '#db2777', bg: '#fdf2f8' },
+                      tecnología:   { color: '#2563eb', bg: '#eff6ff' },
+                      seguridad:    { color: '#4b5563', bg: '#f3f4f6' },
+                      alimentos:    { color: '#ea580c', bg: '#fff7ed' },
+                      noticias:     { color: '#c026d3', bg: '#fdf4ff' },
+                    };
+                    if (map[c]) return map[c];
+                    let hash = 0;
+                    for (let i = 0; i < c.length; i++) hash = c.charCodeAt(i) + ((hash << 5) - hash);
+                    const colors = [
+                      { color: '#4f46e5', bg: '#eef2ff' },
+                      { color: '#0891b2', bg: '#ecfeff' },
+                      { color: '#059669', bg: '#e6fffa' },
+                      { color: '#4d7c0f', bg: '#f7fee7' },
+                      { color: '#ca8a04', bg: '#fef9c3' },
+                      { color: '#9333ea', bg: '#faf5ff' },
+                    ];
+                    return colors[Math.abs(hash) % colors.length];
+                  };
+                  
+                  const catColor = getCategoryBadgeStyle(item.nombre);
+
+                  return (
+                    <tr key={item.id} style={{ borderBottom:'1px solid #f8fafc', background: idx%2===0 ? '#fff' : '#fafbfc', transition:'background 0.1s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background='#f0f4ff'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = idx%2===0 ? '#fff' : '#fafbfc'; }}
+                    >
+                      <td style={{ padding:'13px 16px' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+                          <div style={{ width:'32px', height:'32px', borderRadius:'8px', background: catColor.bg, color: catColor.color, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                            <IconTag />
+                          </div>
+                          <span style={{ fontSize:'14px', fontWeight:'700', color:'#0f172a' }}>{item.nombre}</span>
                         </div>
-                        <span style={{ fontSize:'14px', fontWeight:'700', color:'#0f172a' }}>{item.nombre}</span>
-                      </div>
-                    </td>
+                      </td>
                     <td style={{ padding:'13px 16px', textAlign:'center' }}>
                       <span style={{ display:'inline-block', fontSize:'13px', fontWeight:'700', color: item.count > 0 ? '#003cc3' : '#94a3b8', background: item.count > 0 ? '#eff4ff' : '#f8fafc', padding:'3px 10px', borderRadius:'20px', border:`1px solid ${item.count > 0 ? '#c7d7ff' : '#e2e8f0'}` }}>
                         {item.count} {item.count === 1 ? 'uso' : 'usos'}

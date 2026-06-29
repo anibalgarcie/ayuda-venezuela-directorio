@@ -262,6 +262,40 @@ export default function AdminDirectories() {
               <tbody>
                 {datosPagina.map((item, idx) => {
                   const ec = ESTADO_CFG[item.estado] || ESTADO_CFG.pendiente;
+                  
+                  // Colores dinámicos por categoría
+                  const getCategoryBadgeStyle = (cat) => {
+                    const c = (cat || 'General').toLowerCase().trim();
+                    const map = {
+                      salud:        { color: '#dc2626', bg: '#fef2f2' }, // Red
+                      oficial:      { color: '#0f766e', bg: '#f0fdfa' }, // Teal
+                      gobierno:     { color: '#1d4ed8', bg: '#eff6ff' }, // Blue
+                      donaciones:   { color: '#b45309', bg: '#fffbeb' }, // Amber
+                      logística:    { color: '#7c3aed', bg: '#f5f3ff' }, // Violet
+                      comunicación: { color: '#0369a1', bg: '#f0f9ff' }, // Sky
+                      educación:    { color: '#047857', bg: '#ecfdf5' }, // Emerald
+                      voluntariado: { color: '#db2777', bg: '#fdf2f8' }, // Pink
+                      tecnología:   { color: '#2563eb', bg: '#eff6ff' }, // Blue
+                      seguridad:    { color: '#4b5563', bg: '#f3f4f6' }, // Gray
+                      alimentos:    { color: '#ea580c', bg: '#fff7ed' }, // Orange
+                      noticias:     { color: '#c026d3', bg: '#fdf4ff' }, // Fuchsia
+                    };
+                    if (map[c]) return map[c];
+                    let hash = 0;
+                    for (let i = 0; i < c.length; i++) hash = c.charCodeAt(i) + ((hash << 5) - hash);
+                    const colors = [
+                      { color: '#4f46e5', bg: '#eef2ff' }, // Indigo
+                      { color: '#0891b2', bg: '#ecfeff' }, // Cyan
+                      { color: '#059669', bg: '#e6fffa' }, // Emerald alt
+                      { color: '#4d7c0f', bg: '#f7fee7' }, // Lime
+                      { color: '#ca8a04', bg: '#fef9c3' }, // Yellow
+                      { color: '#9333ea', bg: '#faf5ff' }, // Purple
+                    ];
+                    return colors[Math.abs(hash) % colors.length];
+                  };
+                  
+                  const catColor = getCategoryBadgeStyle(item.categoria);
+
                   return (
                     <tr key={item.id} style={{ borderBottom:'1px solid #f8fafc', background: idx%2===0 ? '#fff' : '#fafbfc', transition:'background 0.1s' }}
                       onMouseEnter={e => { e.currentTarget.style.background='#f0f4ff'; }}
@@ -272,7 +306,7 @@ export default function AdminDirectories() {
                         <div style={{ fontSize:'12px', color:'#94a3b8', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:'2px' }}>{item.descripcion || 'Sin descripción'}</div>
                       </td>
                       <td style={{ padding:'13px 16px', whiteSpace:'nowrap' }}>
-                        <span style={{ fontSize:'11px', fontWeight:'700', color:'#4f46e5', background:'#eef2ff', padding:'3px 8px', borderRadius:'6px', textTransform:'uppercase', letterSpacing:'0.05em' }}>{item.categoria}</span>
+                        <span style={{ fontSize:'11px', fontWeight:'700', color: catColor.color, background: catColor.bg, padding:'3px 8px', borderRadius:'6px', textTransform:'uppercase', letterSpacing:'0.05em' }}>{item.categoria}</span>
                       </td>
                       <td style={{ padding:'13px 16px', maxWidth:'150px' }}>
                         {item.url ? (
