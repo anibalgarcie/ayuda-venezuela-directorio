@@ -281,7 +281,7 @@ export default function AdminCategories() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
