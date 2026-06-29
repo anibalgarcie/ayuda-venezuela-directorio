@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { 
-  LayoutDashboard, Globe, Users, LogOut, ShieldAlert,
-  Loader2, Menu, X, ArrowLeft, Tags
+  LayoutDashboard, Globe, Users, LogOut, Loader2, Menu, X, ArrowLeft, Tags, Moon, Sun, ChevronRight
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -15,8 +15,19 @@ export default function AdminLayout({ children }) {
   const [session, setSession] = useState(null);
   const [perfil, setPerfil] = useState(null);
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
+  const [darkMode, setDarkMode] = useState(true); // Default dark mode for admin
 
   const esPaginaLogin = pathname === '/admin/login';
+
+  // Apply dark mode theme class
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (darkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   useEffect(() => {
     if (esPaginaLogin) {
@@ -43,7 +54,6 @@ export default function AdminLayout({ children }) {
           .single();
 
         if (profileError || !profileData || (profileData.role !== 'admin' && profileData.role !== 'moderator')) {
-          // Desconectar si no es admin ni moderator
           await supabase.auth.signOut();
           router.replace('/admin/login');
           return;
@@ -80,14 +90,13 @@ export default function AdminLayout({ children }) {
   // Si estamos cargando la validación de sesión
   if (cargando && !esPaginaLogin) {
     return (
-      <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 text-cyan-400 animate-spin" />
-        <p className="text-zinc-500 font-medium text-sm tracking-wide">Validando credenciales de acceso...</p>
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        <p className="text-muted-foreground font-medium text-sm tracking-wide">Validando credenciales de acceso...</p>
       </div>
     );
   }
 
-  // Si es la página de login, renderizamos directamente sin envolver en sidebar
   if (esPaginaLogin) {
     return <>{children}</>;
   }
@@ -98,25 +107,44 @@ export default function AdminLayout({ children }) {
     { nombre: 'Categorías', url: '/admin/categories', icono: Tags },
   ];
 
-  // Solo mostrar la sección de usuarios si es rol admin
   if (perfil?.role === 'admin') {
     enlaces.push({ nombre: 'Usuarios / Roles', url: '/admin/users', icono: Users });
   }
 
+  // Generate breadcrumbs from path
+  const getBreadcrumbs = () => {
+    const segments = pathname.split('/').filter(Boolean);
+    return segments.map((segment, index) => {
+      const url = `/${segments.slice(0, index + 1).join('/')}`;
+      const isLast = index === segments.length - 1;
+      let label = segment.charAt(0).toUpperCase() + segment.slice(1);
+      if (segment === 'admin') label = 'Admin';
+      if (segment === 'directories') label = 'Directorio';
+      if (segment === 'categories') label = 'Categorías';
+      if (segment === 'users') label = 'Usuarios';
+
+      return { label, url, isLast };
+    });
+  };
+
+  const breadcrumbs = getBreadcrumbs();
+
   const renderSidebarContent = () => (
-    <div className="flex flex-col h-full bg-[#0d0d11]/80 backdrop-blur-xl border-r border-zinc-900/60 p-5">
+    <div className="flex flex-col h-full bg-card border-r border-border p-5 text-card-foreground">
       {/* Encabezado Sidebar */}
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-zinc-900/60">
+      <div className="flex items-center justify-between mb-8 pb-4 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <div className="h-2.5 w-2.5 rounded-full bg-cyan-500 animate-pulse"></div>
-          <span className="text-sm font-black text-white uppercase tracking-wider">SOS Vzla Admin</span>
+          <div className="h-2.5 w-2.5 rounded-full bg-primary animate-pulse"></div>
+          <span className="text-sm font-black uppercase tracking-wider">SOS Vzla Admin</span>
         </div>
-        <button 
+        <Button 
+          variant="ghost"
+          size="icon"
           onClick={() => setMenuMovilAbierto(false)} 
-          className="lg:hidden p-1 rounded-lg text-zinc-400 hover:bg-zinc-900 hover:text-white"
+          className="lg:hidden h-8 w-8"
         >
-          <X className="h-5 w-5" />
-        </button>
+          <X className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Enlaces de Navegación */}
@@ -125,56 +153,75 @@ export default function AdminLayout({ children }) {
           const Icono = enlace.icono;
           const activo = pathname === enlace.url;
           return (
-            <button
+            <Button
               key={enlace.url}
+              variant={activo ? "secondary" : "ghost"}
+              className={`w-full justify-start gap-3 text-sm font-semibold transition-all ${
+                activo ? 'text-primary' : 'text-muted-foreground'
+              }`}
               onClick={() => {
                 setMenuMovilAbierto(false);
                 router.push(enlace.url);
               }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-xs lg:text-sm font-semibold w-full text-left transition-all duration-200 ${
-                activo
-                  ? 'bg-zinc-900/40 text-cyan-400 border-cyan-500/50 ring-1 ring-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.06)]'
-                  : 'bg-transparent border-transparent text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200'
-              }`}
             >
-              <Icono className={`h-4.5 w-4.5 ${activo ? 'text-cyan-400' : 'text-zinc-500'}`} />
+              <Icono className="h-4 w-4" />
               <span>{enlace.nombre}</span>
-            </button>
+            </Button>
           );
         })}
       </nav>
 
       {/* Perfil de Usuario y Logout */}
-      <div className="pt-4 border-t border-zinc-900/80 space-y-4">
-        <div className="bg-zinc-950/40 border border-zinc-900/60 rounded-2xl p-3.5 flex items-center gap-3">
-          <div className="h-8.5 w-8.5 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center text-zinc-950 font-black text-sm uppercase">
+      <div className="pt-4 border-t border-border space-y-4">
+        {/* Theme Toggle & Back Button */}
+        <div className="flex gap-2 justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDarkMode(!darkMode)}
+            className="flex-1 justify-center gap-2"
+          >
+            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            <span>Tema</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 justify-center gap-2"
+            onClick={() => router.push('/')}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Público</span>
+          </Button>
+        </div>
+
+        <div className="border border-border rounded-xl p-3 flex items-center gap-3 bg-muted/40">
+          <div className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-black text-sm uppercase">
             {perfil?.email?.slice(0, 2) || 'AD'}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-white truncate">{perfil?.email}</p>
-            <span className={`inline-block text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md mt-1 ${
-              perfil?.role === 'admin' 
-                ? 'text-cyan-400 bg-cyan-400/10 border border-cyan-500/10' 
-                : 'text-amber-400 bg-amber-400/10 border border-amber-500/10'
-            }`}>
+            <p className="text-xs font-bold truncate">{perfil?.email}</p>
+            <span className="inline-block text-[9px] font-bold uppercase tracking-wider mt-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary">
               {perfil?.role === 'admin' ? 'Administrador' : 'Moderador'}
             </span>
           </div>
         </div>
 
-        <button 
+        <Button 
+          variant="destructive"
           onClick={handleCerrarSesion}
-          className="flex items-center justify-center gap-2.5 w-full bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300"
+          className="w-full gap-2 text-xs font-bold"
         >
           <LogOut className="h-4 w-4" />
           <span>Cerrar Sesión</span>
-        </button>
+        </Button>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-zinc-100 flex">
+    <div className="min-h-screen bg-background text-foreground flex">
       {/* Sidebar de escritorio */}
       <aside className="hidden lg:block w-64 shrink-0">
         <div className="h-screen sticky top-0">
@@ -195,30 +242,42 @@ export default function AdminLayout({ children }) {
       {/* Contenido Principal */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Cabecera Móvil */}
-        <header className="lg:hidden flex items-center justify-between bg-[#0d0d11]/80 backdrop-blur-md border-b border-zinc-900 px-4 py-3 sticky top-0 z-40">
-          <button 
+        <header className="lg:hidden flex items-center justify-between bg-card border-b border-border px-4 py-3 sticky top-0 z-40">
+          <Button 
+            variant="ghost" 
+            size="icon"
             onClick={() => setMenuMovilAbierto(true)} 
-            className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-900 hover:text-white"
+            className="h-9 w-9 text-muted-foreground"
           >
             <Menu className="h-6 w-6" />
-          </button>
-          <span className="text-xs font-extrabold text-white uppercase tracking-wider">SOS Vzla Admin</span>
-          <div className="h-8.5 w-8.5 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-cyan-400 text-xs font-bold">
+          </Button>
+          <span className="text-xs font-extrabold uppercase tracking-wider">SOS Vzla Admin</span>
+          <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center text-primary text-xs font-bold">
             {perfil?.email?.slice(0, 1).toUpperCase() || 'A'}
           </div>
         </header>
 
         {/* Zona de contenido */}
         <main className="p-4 lg:p-8 flex-1 relative overflow-auto max-w-7xl mx-auto w-full">
-          <div className="flex items-center gap-2 mb-6">
-            <a 
-              href="/"
-              className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-cyan-400 font-semibold transition-colors duration-200 cursor-pointer"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Volver al Portal Público
-            </a>
-          </div>
+          {/* Breadcrumbs Navigation */}
+          <nav className="flex items-center gap-1.5 text-xs text-muted-foreground mb-6" aria-label="Breadcrumb">
+            {breadcrumbs.map((crumb, idx) => (
+              <div key={crumb.url} className="flex items-center gap-1.5">
+                {idx > 0 && <ChevronRight className="h-3 w-3" />}
+                {crumb.isLast ? (
+                  <span className="font-semibold text-foreground">{crumb.label}</span>
+                ) : (
+                  <span 
+                    onClick={() => router.push(crumb.url)}
+                    className="hover:text-foreground cursor-pointer transition-colors"
+                  >
+                    {crumb.label}
+                  </span>
+                )}
+              </div>
+            ))}
+          </nav>
+
           {children}
         </main>
       </div>

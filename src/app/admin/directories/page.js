@@ -1,34 +1,70 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { supabase } from '@/lib/supabase';
 import { 
   Globe, Search, PlusCircle, Edit2, Trash2, Check, X, 
-  ExternalLink, CheckSquare, Square, RefreshCw, AlertTriangle
+  ExternalLink, RefreshCw, AlertTriangle
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell
+} from '@/components/ui/table';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+} from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel
+} from '@/components/ui/alert-dialog';
+
+// Zod Schema for validation
+const schema = z.object({
+  titulo: z.string().min(2, 'El título debe tener al menos 2 caracteres'),
+  categoria: z.string().min(1, 'Selecciona una categoría'),
+  url: z.string().url('Ingresa una dirección URL válida (ej. https://ejemplo.com)'),
+  descripcion: z.string().min(5, 'La descripción debe tener al menos 5 caracteres'),
+  aprobado: z.boolean().default(false)
+});
 
 export default function AdminDirectories() {
   const [datos, setDatos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState('');
-  const [filtroAprobado, setFiltroAprobado] = useState('todos'); // 'todos', 'aprobados', 'pendientes'
+  const [filtroAprobado, setFiltroAprobado] = useState('todos');
   
-  // Estados para modal de edición/creación
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
-  const [titulo, setTitulo] = useState('');
-  const [categoria, setCategoria] = useState('');
-  const [url, setUrl] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [aprobado, setAprobado] = useState(false);
-  const [procesandoForm, setProcesandoForm] = useState(false);
-  const [categoriasDB, setCategoriasDB] = useState([]);
+  
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [eliminandoId, setEliminandoId] = useState(null);
 
-  // Cargar registros
+  const [categoriasDB, setCategoriasDB] = useState([]);
+  const [mensajeForm, setMensajeForm] = useState({ tipo: '', texto: '' });
+
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors, isSubmitting } } = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      titulo: '',
+      categoria: 'Enlaces y Sitios Web',
+      url: '',
+      descripcion: '',
+      aprobado: false
+    }
+  });
+
+  const aprobadoValue = watch('aprobado');
+
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     try {
-      // Cargar categorías
       const { data: catData } = await supabase.from('categorias_web').select('*').order('nombre', { ascending: true });
       if (catData) setCategoriasDB(catData);
 
@@ -54,7 +90,6 @@ export default function AdminDirectories() {
     cargarDatos();
   }, [cargarDatos]);
 
-  // Alternar estado de aprobación rápidamente
   const handleToggleAprobado = async (id, estadoActual) => {
     try {
       const { error } = await supabase
@@ -63,95 +98,83 @@ export default function AdminDirectories() {
         .eq('id', id);
 
       if (error) throw error;
-
-      // Actualizar estado local rápido
       setDatos(prev => prev.map(item => item.id === id ? { ...item, aprobado: !estadoActual } : item));
     } catch (error) {
       alert('Error al actualizar estado: ' + error.message);
     }
   };
 
-  // Eliminar un registro
-  const handleEliminar = async (id) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar este registro permanentemente?')) return;
+  const confirmarEliminar = (id) => {
+    setEliminandoId(id);
+    setAlertOpen(true);
+  };
 
+  const ejecutarEliminar = async () => {
+    if (!eliminandoId) return;
     try {
       const { error } = await supabase
         .from('directorios_web')
         .delete()
-        .eq('id', id);
+        .eq('id', eliminandoId);
 
       if (error) throw error;
-
-      setDatos(prev => prev.filter(item => item.id !== id));
+      setDatos(prev => prev.filter(item => item.id !== eliminandoId));
     } catch (error) {
       alert('Error al eliminar registro: ' + error.message);
+    } finally {
+      setAlertOpen(false);
+      setEliminandoId(null);
     }
   };
 
-  // Abrir modal para crear
   const abrirModalCrear = () => {
     setEditandoId(null);
-    setTitulo('');
-    setCategoria('Enlaces y Sitios Web');
-    setUrl('');
-    setDescripcion('');
-    setAprobado(true); // Registros manuales del admin se aprueban por defecto
+    reset({
+      titulo: '',
+      categoria: 'General',
+      url: '',
+      descripcion: '',
+      aprobado: true
+    });
+    setMensajeForm({ tipo: '', texto: '' });
     setModalAbierto(true);
   };
 
-  // Abrir modal para editar
   const abrirModalEditar = (item) => {
     setEditandoId(item.id);
-    setTitulo(item.titulo || '');
-    setCategoria(item.categoria || '');
-    setUrl(item.url || '');
-    setDescripcion(item.descripcion || item.detalles || '');
-    setAprobado(item.aprobado || false);
+    reset({
+      titulo: item.titulo || '',
+      categoria: item.categoria || 'General',
+      url: item.url || '',
+      descripcion: item.descripcion || item.detalles || '',
+      aprobado: item.aprobado || false
+    });
+    setMensajeForm({ tipo: '', texto: '' });
     setModalAbierto(true);
   };
 
-  // Guardar formulario (Crear o Editar)
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setProcesandoForm(true);
-
-    const payload = {
-      titulo,
-      categoria,
-      url,
-      descripcion,
-      aprobado
-    };
-
+  const onSubmit = async (values) => {
+    setMensajeForm({ tipo: '', texto: '' });
     try {
       if (editandoId) {
-        // Editar
         const { error } = await supabase
           .from('directorios_web')
-          .update(payload)
+          .update(values)
           .eq('id', editandoId);
-
         if (error) throw error;
       } else {
-        // Crear
         const { error } = await supabase
           .from('directorios_web')
-          .insert([payload]);
-
+          .insert([values]);
         if (error) throw error;
       }
-
       setModalAbierto(false);
       cargarDatos();
     } catch (error) {
-      alert('Error al guardar datos: ' + error.message);
-    } finally {
-      setProcesandoForm(false);
+      setMensajeForm({ tipo: 'error', texto: error.message });
     }
   };
 
-  // Filtrar localmente por búsqueda de texto
   const datosFiltrados = datos.filter(item => {
     const q = busqueda.toLowerCase().trim();
     if (!q) return true;
@@ -169,27 +192,24 @@ export default function AdminDirectories() {
       {/* Encabezado */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl lg:text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-xl lg:text-3xl font-extrabold tracking-tight">
             Gestión de Directorio
           </h1>
-          <p className="text-zinc-500 text-xs lg:text-sm mt-1">
-            Modera, edita y crea registros para la tabla <code className="text-cyan-400 font-mono text-[11px] bg-zinc-950 px-1.5 py-0.5 rounded">directorios_web</code>.
+          <p className="text-muted-foreground text-xs lg:text-sm mt-1">
+            Modera, edita y crea registros para la tabla <code className="text-primary font-mono text-[11px] bg-muted px-1.5 py-0.5 rounded">directorios_web</code>.
           </p>
         </div>
         
-        <button
-          onClick={abrirModalCrear}
-          className="flex items-center justify-center gap-2 bg-linear-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-zinc-950 font-black px-5 py-3 rounded-xl transition-all duration-300 shadow-[0_4px_20px_rgba(34,211,238,0.15)] text-xs lg:text-sm active:scale-[0.98]"
-        >
-          <PlusCircle className="h-4.5 w-4.5 stroke-[2.5]" />
+        <Button onClick={abrirModalCrear} className="gap-2">
+          <PlusCircle className="h-4.5 w-4.5" />
           <span>Crear Registro</span>
-        </button>
+        </Button>
       </div>
 
       {/* Controles de filtro y búsqueda */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-zinc-900/10 border border-zinc-900 rounded-2xl p-4">
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-card border border-border rounded-xl p-4">
         {/* Pestañas de Filtro */}
-        <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800/60 w-full md:w-auto">
+        <div className="flex bg-muted p-1 rounded-lg border border-border w-full md:w-auto">
           {[
             { id: 'todos', label: 'Todos' },
             { id: 'aprobados', label: 'Aprobados' },
@@ -198,10 +218,10 @@ export default function AdminDirectories() {
             <button
               key={tab.id}
               onClick={() => setFiltroAprobado(tab.id)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all w-full md:w-auto text-center ${
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all w-full md:w-auto text-center ${
                 filtroAprobado === tab.id
-                  ? 'bg-zinc-900 text-cyan-400 border border-zinc-800 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-300'
+                  ? 'bg-background text-primary shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {tab.label}
@@ -211,241 +231,227 @@ export default function AdminDirectories() {
 
         {/* Buscador */}
         <div className="relative w-full md:w-80">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-zinc-500" />
-          <input
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
             type="text"
             placeholder="Buscar registro..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full bg-zinc-950/80 border border-zinc-850 rounded-xl pl-10 pr-4 py-2.5 text-xs lg:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500/80 transition-all duration-300"
+            className="pl-9"
           />
         </div>
       </div>
 
       {/* Contenedor Principal (Tabla) */}
-      <div className="bg-zinc-900/10 border border-zinc-900 rounded-3xl overflow-hidden shadow-xl">
+      <Card>
         {cargando ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <RefreshCw className="h-8 w-8 text-cyan-400 animate-spin mb-3" />
-            <p className="text-zinc-500 text-xs font-semibold">Cargando registros...</p>
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <RefreshCw className="h-8 w-8 text-primary animate-spin" />
+            <p className="text-muted-foreground text-xs font-semibold">Cargando registros...</p>
           </div>
         ) : datosFiltrados.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-            <AlertTriangle className="h-7 w-7 text-zinc-700 mb-3" />
-            <p className="text-zinc-500 font-medium text-xs lg:text-sm">No se encontraron registros que coincidan con la búsqueda.</p>
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center gap-3">
+            <AlertTriangle className="h-7 w-7 text-muted-foreground animate-bounce" />
+            <p className="text-muted-foreground font-medium text-xs lg:text-sm">No se encontraron registros que coincidan con la búsqueda.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs lg:text-sm">
-              <thead>
-                <tr className="bg-zinc-950 border-b border-zinc-900 text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
-                  <th className="px-6 py-4.5">Registro</th>
-                  <th className="px-6 py-4.5">Categoría</th>
-                  <th className="px-6 py-4.5">Enlace</th>
-                  <th className="px-6 py-4.5 text-center">Estado</th>
-                  <th className="px-6 py-4.5 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-900/60">
-                {datosFiltrados.map((item) => (
-                  <tr key={item.id} className="hover:bg-zinc-900/10 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-white max-w-xs md:max-w-sm truncate">{item.titulo}</div>
-                      <div className="text-zinc-500 text-[11px] max-w-xs md:max-w-sm truncate mt-0.5">{item.descripcion || 'Sin descripción'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-400">
-                        {item.categoria}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 max-w-xs truncate">
-                      {item.url ? (
-                        <a 
-                          href={item.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-cyan-500 hover:text-cyan-400 inline-flex items-center gap-1 hover:underline"
-                        >
-                          <span className="truncate max-w-[150px]">{item.url}</span>
-                          <ExternalLink className="h-3 w-3 shrink-0" />
-                        </a>
-                      ) : (
-                        <span className="text-zinc-600 font-mono">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <button
-                        onClick={() => handleToggleAprobado(item.id, item.aprobado)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wide transition-all ${
-                          item.aprobado
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
-                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20'
-                        }`}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Registro</TableHead>
+                <TableHead>Categoría</TableHead>
+                <TableHead>Enlace</TableHead>
+                <TableHead className="text-center">Estado</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {datosFiltrados.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="py-3">
+                    <div className="font-bold text-foreground max-w-xs md:max-w-sm truncate">{item.titulo}</div>
+                    <div className="text-muted-foreground text-[11px] max-w-xs md:max-w-sm truncate mt-0.5">{item.descripcion || 'Sin descripción'}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="uppercase font-semibold tracking-wide text-[10px]">
+                      {item.categoria}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="max-w-[150px] truncate">
+                    {item.url ? (
+                      <a 
+                        href={item.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-primary hover:underline inline-flex items-center gap-1"
                       >
-                        {item.aprobado ? (
-                          <>
-                            <Check className="h-3 w-3 text-emerald-400" />
-                            <span>Aprobado</span>
-                          </>
-                        ) : (
-                          <>
-                            <X className="h-3 w-3 text-amber-400" />
-                            <span>Pendiente</span>
-                          </>
-                        )}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-right whitespace-nowrap">
-                      <div className="inline-flex gap-2">
-                        <button
-                          onClick={() => abrirModalEditar(item)}
-                          title="Editar registro"
-                          className="p-2 rounded-xl bg-zinc-950 border border-zinc-850 text-zinc-400 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleEliminar(item.id)}
-                          title="Eliminar registro"
-                          className="p-2 rounded-xl bg-zinc-950 border border-zinc-850 text-zinc-400 hover:text-red-400 hover:border-red-500/30 transition-all"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        <span className="truncate">{item.url}</span>
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground font-mono">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleToggleAprobado(item.id, item.aprobado)}
+                      className="h-7 px-2.5 rounded-full"
+                    >
+                      {item.aprobado ? (
+                        <Badge variant="success" className="gap-1 rounded-full text-[10px]">
+                          <Check className="h-2.5 w-2.5" /> Aprobado
+                        </Badge>
+                      ) : (
+                        <Badge variant="warning" className="gap-1 rounded-full text-[10px]">
+                          <X className="h-2.5 w-2.5" /> Pendiente
+                        </Badge>
+                      )}
+                    </Button>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="inline-flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => abrirModalEditar(item)}
+                        className="h-8 w-8"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => confirmarEliminar(item.id)}
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
-      </div>
+      </Card>
 
-      {/* Modal Overlay para Crear / Editar */}
-      {modalAbierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-xs" onClick={() => setModalAbierto(false)}></div>
-          
-          <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 backdrop-blur-xl rounded-3xl p-6 lg:p-7 shadow-2xl z-10 animate-in zoom-in-95 duration-200">
-            
-            {/* Header del Modal */}
-            <div className="flex items-center justify-between mb-6 pb-3 border-b border-zinc-800">
-              <h3 className="text-base lg:text-lg font-bold text-white">
-                {editandoId ? 'Editar Registro' : 'Nuevo Registro de Directorio'}
-              </h3>
-              <button 
-                onClick={() => setModalAbierto(false)} 
-                className="p-1 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
+      {/* Modal para Crear / Editar */}
+      <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editandoId ? 'Editar Registro' : 'Nuevo Registro de Directorio'}
+            </DialogTitle>
+            <DialogDescription>
+              Completa los datos del recurso web para agregarlo al directorio verificado.
+            </DialogDescription>
+          </DialogHeader>
+
+          {mensajeForm.texto && (
+            <div className="p-3 bg-destructive/10 text-destructive text-xs rounded-lg flex gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>{mensajeForm.texto}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Título / Nombre
+              </label>
+              <Input
+                {...register('titulo')}
+                placeholder="Ej: SOS Telecomunicaciones"
+              />
+              {errors.titulo && <p className="text-xs text-destructive">{errors.titulo.message}</p>}
             </div>
 
-            {/* Formulario */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              
-              <div className="space-y-1.5">
-                <label className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  Título / Nombre
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={titulo}
-                  onChange={(e) => setTitulo(e.target.value)}
-                  placeholder="SOS Telecomunicaciones"
-                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-2.5 text-xs lg:text-sm text-white placeholder-zinc-650 focus:outline-none focus:border-cyan-500/80 transition-all"
-                />
-              </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Categoría
+              </label>
+              <select
+                {...register('categoria')}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-card text-foreground"
+              >
+                <option value="">Seleccionar Categoría...</option>
+                {categoriasDB.map((cat) => (
+                  <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
+                ))}
+              </select>
+              {errors.categoria && <p className="text-xs text-destructive">{errors.categoria.message}</p>}
+            </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  Categoría
-                </label>
-                <select
-                  required
-                  value={categoria}
-                  onChange={(e) => setCategoria(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-2.5 text-xs lg:text-sm text-white focus:outline-none focus:border-cyan-500/80 transition-all appearance-none"
-                >
-                  <option value="" className="text-zinc-500">Seleccionar Categoría...</option>
-                  {categoriasDB.map((cat) => (
-                    <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                URL del Enlace Web
+              </label>
+              <Input
+                {...register('url')}
+                placeholder="https://ejemplo.com"
+              />
+              {errors.url && <p className="text-xs text-destructive">{errors.url.message}</p>}
+            </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  URL del Enlace Web
-                </label>
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://ejemplo.com"
-                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-2.5 text-xs lg:text-sm text-white placeholder-zinc-650 focus:outline-none focus:border-cyan-500/80 transition-all"
-                />
-              </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Descripción / Detalles
+              </label>
+              <Textarea
+                {...register('descripcion')}
+                placeholder="Explica brevemente de qué trata este enlace web..."
+                rows={3}
+              />
+              {errors.descripcion && <p className="text-xs text-destructive">{errors.descripcion.message}</p>}
+            </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  Descripción / Detalles
-                </label>
-                <textarea
-                  rows="3"
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  placeholder="Explica brevemente de qué trata este enlace web..."
-                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-2.5 text-xs lg:text-sm text-white placeholder-zinc-650 focus:outline-none focus:border-cyan-500/80 transition-all resize-none"
-                />
+            {/* Switch de Aprobación */}
+            <div className="flex items-center justify-between border border-border rounded-xl p-3 bg-muted/20">
+              <div>
+                <p className="text-xs font-bold">Aprobado / Activo</p>
+                <p className="text-[10px] text-muted-foreground">Los registros aprobados se muestran al público de inmediato.</p>
               </div>
+              <Switch
+                checked={aprobadoValue}
+                onCheckedChange={(checked) => setValue('aprobado', checked)}
+              />
+            </div>
 
-              {/* Toggle de Aprobación */}
-              <div className="flex items-center gap-3 py-2">
-                <button
-                  type="button"
-                  onClick={() => setAprobado(!aprobado)}
-                  className="text-cyan-400 focus:outline-none"
-                >
-                  {aprobado ? (
-                    <CheckSquare className="h-6 w-6 stroke-[2]" />
-                  ) : (
-                    <Square className="h-6 w-6 stroke-[2] text-zinc-600" />
-                  )}
-                </button>
-                <div>
-                  <p className="text-xs font-bold text-white">Aprobar registro de inmediato</p>
-                  <p className="text-[10px] text-zinc-500">Los registros aprobados se muestran al público en general.</p>
-                </div>
-              </div>
+            <DialogFooter className="pt-4 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setModalAbierto(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Guardar'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-              {/* Botones de acción del Modal */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
-                <button
-                  type="button"
-                  onClick={() => setModalAbierto(false)}
-                  className="px-4 py-2.5 rounded-xl border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-950 transition-all text-xs font-bold"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={procesandoForm}
-                  className="bg-linear-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-zinc-950 font-black px-5 py-2.5 rounded-xl transition-all text-xs active:scale-[0.98] disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  {procesandoForm ? (
-                    <RefreshCw className="h-4.5 w-4.5 animate-spin" />
-                  ) : (
-                    <span>{editandoId ? 'Guardar Cambios' : 'Crear Registro'}</span>
-                  )}
-                </button>
-              </div>
-
-            </form>
-          </div>
-        </div>
-      )}
+      {/* AlertDialog para eliminación */}
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmas la eliminación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará el registro de forma permanente de la base de datos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAlertOpen(false)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={ejecutarEliminar} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar Permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );

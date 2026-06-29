@@ -1,32 +1,56 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { supabase } from '@/lib/supabase';
 import { 
   Users, UserPlus, Trash2, Shield, ShieldCheck, 
-  Loader2, RefreshCw, X, AlertTriangle, KeyRound, Mail, UserCog
+  Loader2, RefreshCw, AlertTriangle, KeyRound, Mail, UserCog
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell
+} from '@/components/ui/table';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+} from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel
+} from '@/components/ui/alert-dialog';
+
+// Zod Schema
+const schema = z.object({
+  email: z.string().email('Ingresa un correo electrónico válido'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  role: z.enum(['admin', 'moderator'], { errorMap: () => ({ message: 'Selecciona un rol válido' }) })
+});
 
 export default function AdminUsers() {
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [usuarioActual, setUsuarioActual] = useState(null);
 
-  // Estados para modal de creación
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('moderator'); // 'admin' o 'moderator'
-  const [procesandoForm, setProcesandoForm] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [eliminandoId, setEliminandoId] = useState(null);
+  
   const [errorForm, setErrorForm] = useState(null);
 
-  // Cargar lista de usuarios llamando a nuestra API interna
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: { email: '', password: '', role: 'moderator' }
+  });
+
   const cargarUsuarios = useCallback(async () => {
     setCargando(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-
       setUsuarioActual(session.user);
 
       const res = await fetch('/api/admin/users', {
@@ -37,7 +61,6 @@ export default function AdminUsers() {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'No se pudo obtener la lista de usuarios.');
-
       setUsuarios(data);
     } catch (error) {
       console.error('Error al cargar usuarios:', error);
@@ -51,7 +74,6 @@ export default function AdminUsers() {
     cargarUsuarios();
   }, [cargarUsuarios]);
 
-  // Cambiar rol de un usuario
   const handleChangeRole = async (userId, nuevoRol) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -66,28 +88,26 @@ export default function AdminUsers() {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al actualizar rol');
-
-      // Actualizar estado local
       setUsuarios(prev => prev.map(u => u.id === userId ? { ...u, role: nuevoRol } : u));
     } catch (error) {
       alert('Error al cambiar rol: ' + error.message);
     }
   };
 
-  // Eliminar un usuario
-  const handleEliminarUsuario = async (userId) => {
+  const confirmarEliminar = (userId) => {
     if (userId === usuarioActual?.id) {
       alert('No puedes eliminar tu propia cuenta administrativa.');
       return;
     }
+    setEliminandoId(userId);
+    setAlertOpen(true);
+  };
 
-    if (!confirm('¿Estás seguro de que deseas eliminar permanentemente a este usuario? Esto borrará su acceso de autenticación y su perfil.')) {
-      return;
-    }
-
+  const ejecutarEliminar = async () => {
+    if (!eliminandoId) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/admin/users?id=${userId}`, {
+      const res = await fetch(`/api/admin/users?id=${eliminandoId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -96,34 +116,23 @@ export default function AdminUsers() {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al eliminar usuario');
-
-      setUsuarios(prev => prev.filter(u => u.id !== userId));
+      setUsuarios(prev => prev.filter(u => u.id !== eliminandoId));
     } catch (error) {
       alert('Error al eliminar usuario: ' + error.message);
+    } finally {
+      setAlertOpen(false);
+      setEliminandoId(null);
     }
   };
 
-  // Abrir modal de creación
   const abrirModalCrear = () => {
-    setEmail('');
-    setPassword('');
-    setRole('moderator');
+    reset({ email: '', password: '', role: 'moderator' });
     setErrorForm(null);
     setModalAbierto(true);
   };
 
-  // Enviar formulario de creación
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setProcesandoForm(true);
+  const onSubmit = async (values) => {
     setErrorForm(null);
-
-    if (password.length < 6) {
-      setErrorForm('La contraseña debe tener al menos 6 caracteres.');
-      setProcesandoForm(false);
-      return;
-    }
-
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/admin/users', {
@@ -132,7 +141,7 @@ export default function AdminUsers() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ email, password, role })
+        body: JSON.stringify(values)
       });
 
       const data = await res.json();
@@ -142,8 +151,6 @@ export default function AdminUsers() {
       cargarUsuarios();
     } catch (error) {
       setErrorForm(error.message);
-    } finally {
-      setProcesandoForm(false);
     }
   };
 
@@ -153,237 +160,227 @@ export default function AdminUsers() {
       {/* Encabezado */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl lg:text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-xl lg:text-3xl font-extrabold tracking-tight">
             Personal / Roles y Permisos
           </h1>
-          <p className="text-zinc-500 text-xs lg:text-sm mt-1">
+          <p className="text-muted-foreground text-xs lg:text-sm mt-1">
             Registra nuevos miembros del equipo y gestiona los niveles de acceso al panel administrativo.
           </p>
         </div>
         
-        <button
-          onClick={abrirModalCrear}
-          className="flex items-center justify-center gap-2 bg-linear-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-zinc-950 font-black px-5 py-3 rounded-xl transition-all duration-300 shadow-[0_4px_20px_rgba(34,211,238,0.15)] text-xs lg:text-sm active:scale-[0.98]"
-        >
-          <UserPlus className="h-4.5 w-4.5 stroke-[2.5]" />
+        <Button onClick={abrirModalCrear} className="gap-2">
+          <UserPlus className="h-4.5 w-4.5" />
           <span>Registrar Usuario Staff</span>
-        </button>
+        </Button>
       </div>
 
       {/* Explicación de Roles */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-[#0c0f17] border border-cyan-500/10 p-4 rounded-2xl flex gap-3">
-          <div className="p-2.5 h-10 w-10 shrink-0 rounded-xl bg-cyan-950 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+        <Card className="flex gap-3 p-4 bg-blue-500/5 border-blue-500/10">
+          <div className="p-2.5 h-10 w-10 shrink-0 rounded-xl bg-blue-500/10 text-primary flex items-center justify-center">
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div>
-            <h4 className="text-xs lg:text-sm font-bold text-white">Rol: Administrador (Admin)</h4>
-            <p className="text-[10px] lg:text-xs text-zinc-500 leading-relaxed mt-1">
+            <h4 className="text-xs lg:text-sm font-bold text-foreground">Rol: Administrador (Admin)</h4>
+            <p className="text-[10px] lg:text-xs text-muted-foreground leading-relaxed mt-1">
               Acceso total sin restricciones. Puede crear, modificar y eliminar a otros usuarios del staff, editar sus roles y moderar el directorio completo.
             </p>
           </div>
-        </div>
+        </Card>
 
-        <div className="bg-[#18110b] border border-amber-500/10 p-4 rounded-2xl flex gap-3">
-          <div className="p-2.5 h-10 w-10 shrink-0 rounded-xl bg-amber-950 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+        <Card className="flex gap-3 p-4 bg-amber-500/5 border-amber-500/10">
+          <div className="p-2.5 h-10 w-10 shrink-0 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
             <Shield className="h-5 w-5" />
           </div>
           <div>
-            <h4 className="text-xs lg:text-sm font-bold text-white">Rol: Moderador (Staff)</h4>
-            <p className="text-[10px] lg:text-xs text-zinc-500 leading-relaxed mt-1">
+            <h4 className="text-xs lg:text-sm font-bold text-foreground">Rol: Moderador (Staff)</h4>
+            <p className="text-[10px] lg:text-xs text-muted-foreground leading-relaxed mt-1">
               Acceso de control de datos. Puede crear, editar, eliminar y aprobar registros de directorio, pero no tiene acceso a este gestor de usuarios y roles.
             </p>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Lista de Usuarios */}
-      <div className="bg-zinc-900/10 border border-zinc-900 rounded-3xl overflow-hidden shadow-xl">
+      <Card>
         {cargando ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 text-cyan-400 animate-spin mb-3" />
-            <p className="text-zinc-500 text-xs font-semibold">Cargando lista de personal...</p>
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+            <p className="text-muted-foreground text-xs font-semibold">Cargando lista de personal...</p>
           </div>
         ) : usuarios.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-            <AlertTriangle className="h-7 w-7 text-zinc-700 mb-3" />
-            <p className="text-zinc-500 font-medium text-xs lg:text-sm">No se encontraron perfiles de staff registrados.</p>
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center gap-3">
+            <AlertTriangle className="h-7 w-7 text-muted-foreground animate-bounce" />
+            <p className="text-muted-foreground font-medium text-xs lg:text-sm">No se encontraron perfiles de staff registrados.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs lg:text-sm">
-              <thead>
-                <tr className="bg-zinc-950 border-b border-zinc-900 text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
-                  <th className="px-6 py-4.5">Usuario (Correo)</th>
-                  <th className="px-6 py-4.5">Rol / Permisos</th>
-                  <th className="px-6 py-4.5">Registrado el</th>
-                  <th className="px-6 py-4.5 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-900/60">
-                {usuarios.map((user) => (
-                  <tr key={user.id} className="hover:bg-zinc-900/10 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="h-8.5 w-8.5 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 font-bold text-xs uppercase shadow-inner">
-                          {user.email?.slice(0, 2)}
-                        </div>
-                        <div>
-                          <div className="font-bold text-white flex items-center gap-1.5">
-                            <span>{user.email}</span>
-                            {user.id === usuarioActual?.id && (
-                              <span className="text-[9px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded-md font-semibold font-mono">Tú</span>
-                            )}
-                          </div>
-                          <div className="text-[10px] text-zinc-500 mt-0.5 font-mono">{user.id}</div>
-                        </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Usuario (Correo)</TableHead>
+                <TableHead>Rol / Permisos</TableHead>
+                <TableHead>Registrado el</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {usuarios.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-muted border border-border flex items-center justify-center text-muted-foreground font-bold text-xs uppercase shadow-inner">
+                        {user.email?.slice(0, 2)}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={user.role}
-                        disabled={user.id === usuarioActual?.id}
-                        onChange={(e) => handleChangeRole(user.id, e.target.value)}
-                        className={`text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-xl border bg-zinc-950 focus:outline-none transition-all cursor-pointer ${
-                          user.role === 'admin' 
-                            ? 'border-cyan-500/20 text-cyan-400 focus:border-cyan-500' 
-                            : 'border-amber-500/20 text-amber-400 focus:border-amber-500'
-                        } disabled:opacity-60 disabled:cursor-not-allowed`}
-                      >
-                        <option value="admin">Administrador</option>
-                        <option value="moderator">Moderador</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-zinc-500">
-                      {user.created_at ? new Date(user.created_at).toLocaleDateString('es-VE', {
-                        year: 'numeric', month: 'long', day: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                      }) : '-'}
-                    </td>
-                    <td className="px-6 py-4 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => handleEliminarUsuario(user.id)}
-                        disabled={user.id === usuarioActual?.id}
-                        title="Eliminar usuario"
-                        className="p-2 rounded-xl bg-zinc-950 border border-zinc-850 text-zinc-400 hover:text-red-400 hover:border-red-500/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <div>
+                        <div className="font-bold text-foreground flex items-center gap-1.5">
+                          <span>{user.email}</span>
+                          {user.id === usuarioActual?.id && (
+                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0.5 rounded font-semibold font-mono">Tú</Badge>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">{user.id}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <select
+                      value={user.role}
+                      disabled={user.id === usuarioActual?.id}
+                      onChange={(e) => handleChangeRole(user.id, e.target.value)}
+                      className={`text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg border bg-transparent text-foreground cursor-pointer focus:outline-none transition-all ${
+                        user.role === 'admin' 
+                          ? 'border-primary/20 text-primary' 
+                          : 'border-amber-500/20 text-amber-500'
+                      } disabled:opacity-60 disabled:cursor-not-allowed`}
+                    >
+                      <option value="admin">Administrador</option>
+                      <option value="moderator">Moderador</option>
+                    </select>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {user.created_at ? new Date(user.created_at).toLocaleDateString('es-VE', {
+                      year: 'numeric', month: 'long', day: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
+                    }) : '-'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      disabled={user.id === usuarioActual?.id}
+                      onClick={() => confirmarEliminar(user.id)}
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
-      </div>
+      </Card>
 
       {/* Modal para Registrar Personal */}
-      {modalAbierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-xs" onClick={() => setModalAbierto(false)}></div>
-          
-          <div className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 backdrop-blur-xl rounded-3xl p-6 lg:p-7 shadow-2xl z-10 animate-in zoom-in-95 duration-200">
-            
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6 pb-3 border-b border-zinc-800">
-              <h3 className="text-base lg:text-lg font-bold text-white flex items-center gap-2">
-                <UserCog className="h-5 w-5 text-cyan-400" />
-                <span>Registrar Personal</span>
-              </h3>
-              <button 
-                onClick={() => setModalAbierto(false)} 
-                className="p-1 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
+      <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCog className="h-5 w-5 text-primary" />
+              <span>Registrar Personal</span>
+            </DialogTitle>
+            <DialogDescription>
+              Crea una cuenta administrativa de acceso rápido para un nuevo miembro del equipo.
+            </DialogDescription>
+          </DialogHeader>
+
+          {errorForm && (
+            <div className="p-3 bg-destructive/10 text-destructive text-xs rounded-lg flex gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>{errorForm}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Correo Electrónico
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="email"
+                  {...register('email')}
+                  placeholder="staff@emergencia.com"
+                  className="pl-9"
+                />
+              </div>
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
 
-            {/* Error local */}
-            {errorForm && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl flex items-start gap-2.5 text-xs">
-                <AlertTriangle className="h-4 w-4 shrink-0 text-red-400 mt-0.5" />
-                <span>{errorForm}</span>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Contraseña Temporal
+              </label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="password"
+                  {...register('password')}
+                  placeholder="Mínimo 6 caracteres"
+                  className="pl-9"
+                />
               </div>
-            )}
+              {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+            </div>
 
-            {/* Formulario */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              
-              <div className="space-y-1.5">
-                <label className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  Correo Electrónico
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-3 h-4 w-4 text-zinc-500" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="staff@emergencia.com"
-                    className="w-full bg-zinc-950 border border-zinc-850 rounded-xl pl-10 pr-4 py-2.5 text-xs lg:text-sm text-white placeholder-zinc-650 focus:outline-none focus:border-cyan-500/80 transition-all"
-                  />
-                </div>
-              </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Rol de Acceso
+              </label>
+              <select
+                {...register('role')}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-card text-foreground"
+              >
+                <option value="moderator">Moderador (Solo Directorio)</option>
+                <option value="admin">Administrador (Acceso Total)</option>
+              </select>
+              {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
+            </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  Contraseña Temporal
-                </label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3.5 top-3 h-4 w-4 text-zinc-500" />
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    className="w-full bg-zinc-950 border border-zinc-850 rounded-xl pl-10 pr-4 py-2.5 text-xs lg:text-sm text-white placeholder-zinc-650 focus:outline-none focus:border-cyan-500/80 transition-all"
-                  />
-                </div>
-              </div>
+            <DialogFooter className="pt-4 border-t border-border mt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setModalAbierto(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Registrar Usuario'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  Rol de Acceso
-                </label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-4 py-2.5 text-xs lg:text-sm text-white focus:outline-none focus:border-cyan-500/80 transition-all cursor-pointer font-semibold"
-                >
-                  <option value="moderator">Moderador (Solo Directorio)</option>
-                  <option value="admin">Administrador (Acceso Total)</option>
-                </select>
-              </div>
-
-              {/* Botones de acción */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setModalAbierto(false)}
-                  className="px-4 py-2.5 rounded-xl border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-950 transition-all text-xs font-bold"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={procesandoForm}
-                  className="bg-linear-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-zinc-950 font-black px-5 py-2.5 rounded-xl transition-all text-xs active:scale-[0.98] disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  {procesandoForm ? (
-                    <RefreshCw className="h-4.5 w-4.5 animate-spin" />
-                  ) : (
-                    <span>Registrar Usuario</span>
-                  )}
-                </button>
-              </div>
-
-            </form>
-          </div>
-        </div>
-      )}
+      {/* AlertDialog para eliminación */}
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmas la eliminación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará de forma permanente la cuenta administrativa y el perfil de acceso del usuario seleccionado de la base de datos de autenticación.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAlertOpen(false)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={ejecutarEliminar} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar Permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );
