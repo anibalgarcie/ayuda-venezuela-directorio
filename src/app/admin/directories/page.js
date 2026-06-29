@@ -5,558 +5,419 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
-import { 
-  Globe, Search, PlusCircle, Edit2, Trash2, Check, X, 
-  ExternalLink, RefreshCw, AlertTriangle
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import {
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell
-} from '@/components/ui/table';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
-} from '@/components/ui/dialog';
-import {
-  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel
-} from '@/components/ui/alert-dialog';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
 
-// Zod Schema for validation
+// ── SVGs ──────────────────────────────────────────────────────────────────────
+const IconSearch = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>);
+const IconPlus = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>);
+const IconEdit = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>);
+const IconTrash = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>);
+const IconExternal = () => (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>);
+const IconX = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>);
+const IconAlert = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>);
+const IconChevLeft = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>);
+const IconChevRight = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>);
+const IconLoader = () => (<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#003cc3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{animation:'spin 0.8s linear infinite'}}><path d="M21 12a9 9 0 1 1-6.219-8.56"/><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></svg>);
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 15;
+
 const schema = z.object({
-  titulo: z.string().min(2, 'El título debe tener al menos 2 caracteres'),
-  categoria: z.string().min(1, 'Selecciona una categoría'),
-  url: z.string().url('Ingresa una dirección URL válida (ej. https://ejemplo.com)'),
-  descripcion: z.string().min(5, 'La descripción debe tener al menos 5 caracteres'),
-  estado: z.enum(['pendiente', 'aprobado', 'rechazado']).default('pendiente'),
-  destacado: z.boolean().default(false),
-  activo: z.boolean().default(true)
+  titulo:      z.string().min(2, 'Mínimo 2 caracteres'),
+  categoria:   z.string().min(1, 'Selecciona una categoría'),
+  url:         z.string().url('URL inválida (ej. https://ejemplo.com)'),
+  descripcion: z.string().min(5, 'Mínimo 5 caracteres'),
+  estado:      z.enum(['pendiente', 'aprobado', 'rechazado']).default('pendiente'),
+  destacado:   z.boolean().default(false),
+  activo:      z.boolean().default(true),
 });
 
-export default function AdminDirectories() {
-  const [datos, setDatos] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [busqueda, setBusqueda] = useState('');
-  const [filtroAprobado, setFiltroAprobado] = useState('todos');
-  
-  const [modalAbierto, setModalAbierto] = useState(false);
-  const [editandoId, setEditandoId] = useState(null);
-  
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [eliminandoId, setEliminandoId] = useState(null);
+const FALLBACK_CATS = ['Alimentos','Comunicación','Donaciones','Educación','Gobierno','Logística','Noticias','Oficial','Salud','Seguridad','Tecnología','Voluntariado'];
+const ESTADO_CFG   = { aprobado: { bg:'#f0fdf4', color:'#16a34a' }, pendiente: { bg:'#fffbeb', color:'#d97706' }, rechazado: { bg:'#fff1f2', color:'#e11d48' } };
 
-  const [categoriasDB, setCategoriasDB] = useState([]);
-  const [mensajeForm, setMensajeForm] = useState({ tipo: '', texto: '' });
+// ── Reusable sub-components ───────────────────────────────────────────────────
+function Toggle({ checked, onChange, activeColor = '#003cc3' }) {
+  return (
+    <button type="button" onClick={onChange} style={{ width:'38px', height:'20px', borderRadius:'10px', background: checked ? activeColor : '#e2e8f0', border:'none', cursor:'pointer', position:'relative', transition:'background 0.2s', flexShrink:0 }}>
+      <span style={{ position:'absolute', top:'2px', left: checked ? '20px' : '2px', width:'16px', height:'16px', borderRadius:'50%', background:'#fff', transition:'left 0.18s', boxShadow:'0 1px 3px rgba(0,0,0,0.2)' }} />
+    </button>
+  );
+}
+
+function Modal({ open, onClose, title, description, children }) {
+  if (!open) return null;
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.42)', backdropFilter:'blur(3px)' }} onClick={onClose} />
+      <div style={{ position:'relative', zIndex:1, background:'#fff', borderRadius:'20px', boxShadow:'0 24px 60px rgba(0,0,0,0.18)', width:'100%', maxWidth:'540px', maxHeight:'92vh', overflowY:'auto' }}>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', padding:'24px 24px 0' }}>
+          <div>
+            <h2 style={{ fontSize:'17px', fontWeight:'800', color:'#0f172a', marginBottom:'4px' }}>{title}</h2>
+            {description && <p style={{ fontSize:'13px', color:'#94a3b8' }}>{description}</p>}
+          </div>
+          <button onClick={onClose} style={{ border:'none', background:'#f1f5f9', borderRadius:'8px', padding:'6px', cursor:'pointer', color:'#64748b', display:'flex', marginLeft:'12px', flexShrink:0 }}><IconX /></button>
+        </div>
+        <div style={{ padding:'20px 24px 24px' }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmDialog({ open, onCancel, onConfirm, message }) {
+  if (!open) return null;
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}>
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.48)', backdropFilter:'blur(3px)' }} onClick={onCancel} />
+      <div style={{ position:'relative', zIndex:1, background:'#fff', borderRadius:'16px', boxShadow:'0 24px 60px rgba(0,0,0,0.18)', width:'100%', maxWidth:'380px', padding:'28px' }}>
+        <h3 style={{ fontSize:'16px', fontWeight:'800', color:'#0f172a', marginBottom:'10px' }}>¿Confirmas la eliminación?</h3>
+        <p style={{ fontSize:'14px', color:'#64748b', lineHeight:'1.6', marginBottom:'24px' }}>{message || 'Esta acción no se puede deshacer. El registro se eliminará permanentemente.'}</p>
+        <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+          <button onClick={onCancel} style={{ padding:'9px 18px', borderRadius:'10px', border:'1.5px solid #e2e8f0', background:'#fff', color:'#374151', fontSize:'14px', fontWeight:'600', cursor:'pointer' }}>Cancelar</button>
+          <button onClick={onConfirm} style={{ padding:'9px 18px', borderRadius:'10px', border:'none', background:'#e11d48', color:'#fff', fontSize:'14px', fontWeight:'700', cursor:'pointer' }}>Eliminar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const fieldLabel = { display:'block', fontSize:'13px', fontWeight:'600', color:'#374151', marginBottom:'6px' };
+const inputBase  = (err) => ({ width:'100%', height:'42px', padding:'0 12px', borderRadius:'10px', border:`1.5px solid ${err ? '#e11d48' : '#e2e8f0'}`, background:'#f8fafc', fontSize:'14px', color:'#0f172a', outline:'none', boxSizing:'border-box', transition:'border-color 0.2s, box-shadow 0.2s' });
+const focusHandlers = (err) => ({
+  onFocus: e => { e.target.style.borderColor='#003cc3'; e.target.style.boxShadow='0 0 0 3px rgba(0,60,195,0.08)'; e.target.style.background='#fff'; },
+  onBlur:  e => { e.target.style.borderColor = err ? '#e11d48' : '#e2e8f0'; e.target.style.boxShadow='none'; e.target.style.background='#f8fafc'; },
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
+export default function AdminDirectories() {
+  const [datos,         setDatos]         = useState([]);
+  const [cargando,      setCargando]      = useState(true);
+  const [busqueda,      setBusqueda]      = useState('');
+  const [filtro,        setFiltro]        = useState('todos');
+  const [pagina,        setPagina]        = useState(1);
+  const [modalAbierto,  setModalAbierto]  = useState(false);
+  const [editandoId,    setEditandoId]    = useState(null);
+  const [alertOpen,     setAlertOpen]     = useState(false);
+  const [eliminandoId,  setEliminandoId]  = useState(null);
+  const [categorias,    setCategorias]    = useState([]);
+  const [mensajeForm,   setMensajeForm]   = useState('');
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: {
-      titulo: '',
-      categoria: 'Enlaces y Sitios Web',
-      url: '',
-      descripcion: '',
-      estado: 'pendiente',
-      destacado: false,
-      activo: true
-    }
+    defaultValues: { titulo:'', categoria:'General', url:'', descripcion:'', estado:'pendiente', destacado:false, activo:true },
   });
 
-  const estadoValue = watch('estado');
+  const estadoValue    = watch('estado');
   const destacadoValue = watch('destacado');
-  const activoValue = watch('activo');
+  const activoValue    = watch('activo');
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     try {
-      // Fallback default categories
-      const fallbackCategories = [
-        { id: '1', nombre: 'Salud' },
-        { id: '2', nombre: 'Oficial' },
-        { id: '3', nombre: 'Gobierno' },
-        { id: '4', nombre: 'Donaciones' },
-        { id: '5', nombre: 'Logística' },
-        { id: '6', nombre: 'Comunicación' },
-        { id: '7', nombre: 'Educación' },
-        { id: '8', nombre: 'Voluntariado' },
-        { id: '9', nombre: 'Tecnología' },
-        { id: '10', nombre: 'Seguridad' },
-        { id: '11', nombre: 'Alimentos' },
-        { id: '12', nombre: 'Noticias' },
-      ];
-
-      let query = supabase.from('directorios_web').select('*');
-      
-      if (filtroAprobado === 'aprobados') {
-        query = query.eq('estado', 'aprobado');
-      } else if (filtroAprobado === 'pendientes') {
-        query = query.eq('estado', 'pendiente');
-      }
-      
-      const { data, error } = await query.order('creado_en', { ascending: false });
+      let q = supabase.from('directorios_web').select('*');
+      if (filtro === 'aprobados')  q = q.eq('estado', 'aprobado');
+      if (filtro === 'pendientes') q = q.eq('estado', 'pendiente');
+      const { data, error } = await q.order('creado_en', { ascending: false });
       if (error) throw error;
       setDatos(data || []);
-
-      // Extract unique categories from directories and combine with fallbacks
-      const dbDirCategories = Array.from(new Set((data || []).map(d => d.categoria).filter(Boolean)));
-      const combined = [...fallbackCategories];
-      dbDirCategories.forEach((catName, idx) => {
-        if (!combined.some(c => c.nombre.toLowerCase() === catName.toLowerCase())) {
-          combined.push({ id: `custom-${idx}`, nombre: catName });
-        }
-      });
-      setCategoriasDB(combined.sort((a, b) => a.nombre.localeCompare(b.nombre)));
-    } catch (error) {
-      console.error('Error al cargar directorios:', error);
+      // Build category list
+      const fromDB  = Array.from(new Set((data || []).map(d => d.categoria).filter(Boolean)));
+      const merged  = [...new Set([...FALLBACK_CATS, ...fromDB])].sort();
+      setCategorias(merged);
+    } catch (err) {
+      console.error(err);
     } finally {
       setCargando(false);
     }
-  }, [filtroAprobado]);
+  }, [filtro]);
 
-  useEffect(() => {
-    cargarDatos();
-  }, [cargarDatos]);
+  useEffect(() => { cargarDatos(); }, [cargarDatos]);
+
+  // Reset to page 1 on filter/search change
+  useEffect(() => { setPagina(1); }, [filtro, busqueda]);
 
   const handleToggleEstado = async (id, nuevoEstado) => {
     try {
-      const { error } = await supabase
-        .from('directorios_web')
-        .update({ estado: nuevoEstado })
-        .eq('id', id);
-
+      const { error } = await supabase.from('directorios_web').update({ estado: nuevoEstado }).eq('id', id);
       if (error) throw error;
       setDatos(prev => prev.map(item => item.id === id ? { ...item, estado: nuevoEstado } : item));
-    } catch (error) {
-      alert('Error al actualizar estado: ' + error.message);
-    }
+    } catch (err) { alert(err.message); }
   };
 
   const handleToggleBoolean = async (id, campo, valorActual) => {
     try {
-      const { error } = await supabase
-        .from('directorios_web')
-        .update({ [campo]: !valorActual })
-        .eq('id', id);
-
+      const { error } = await supabase.from('directorios_web').update({ [campo]: !valorActual }).eq('id', id);
       if (error) throw error;
       setDatos(prev => prev.map(item => item.id === id ? { ...item, [campo]: !valorActual } : item));
-    } catch (error) {
-      alert(`Error al actualizar ${campo}: ` + error.message);
-    }
-  };
-
-  const confirmarEliminar = (id) => {
-    setEliminandoId(id);
-    setAlertOpen(true);
-  };
-
-  const ejecutarEliminar = async () => {
-    if (!eliminandoId) return;
-    try {
-      const { error } = await supabase
-        .from('directorios_web')
-        .delete()
-        .eq('id', eliminandoId);
-
-      if (error) throw error;
-      setDatos(prev => prev.filter(item => item.id !== eliminandoId));
-    } catch (error) {
-      alert('Error al eliminar registro: ' + error.message);
-    } finally {
-      setAlertOpen(false);
-      setEliminandoId(null);
-    }
+    } catch (err) { alert(err.message); }
   };
 
   const abrirModalCrear = () => {
     setEditandoId(null);
-    reset({
-      titulo: '',
-      categoria: 'General',
-      url: '',
-      descripcion: '',
-      aprobado: true
-    });
-    setMensajeForm({ tipo: '', texto: '' });
+    reset({ titulo:'', categoria:'General', url:'', descripcion:'', estado:'pendiente', destacado:false, activo:true });
+    setMensajeForm('');
     setModalAbierto(true);
   };
 
   const abrirModalEditar = (item) => {
     setEditandoId(item.id);
-    reset({
-      titulo: item.titulo || '',
-      categoria: item.categoria || 'General',
-      url: item.url || '',
-      descripcion: item.descripcion || item.detalles || '',
-      aprobado: item.aprobado || false
-    });
-    setMensajeForm({ tipo: '', texto: '' });
+    reset({ titulo: item.titulo || '', categoria: item.categoria || 'General', url: item.url || '', descripcion: item.descripcion || '', estado: item.estado || 'pendiente', destacado: !!item.destacado, activo: item.activo !== false });
+    setMensajeForm('');
     setModalAbierto(true);
   };
 
   const onSubmit = async (values) => {
-    setMensajeForm({ tipo: '', texto: '' });
+    setMensajeForm('');
     try {
       if (editandoId) {
-        const { error } = await supabase
-          .from('directorios_web')
-          .update(values)
-          .eq('id', editandoId);
+        const { error } = await supabase.from('directorios_web').update(values).eq('id', editandoId);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('directorios_web')
-          .insert([values]);
+        const { error } = await supabase.from('directorios_web').insert([values]);
         if (error) throw error;
       }
       setModalAbierto(false);
       cargarDatos();
-    } catch (error) {
-      setMensajeForm({ tipo: 'error', texto: error.message });
-    }
+    } catch (err) { setMensajeForm(err.message); }
   };
 
+  const ejecutarEliminar = async () => {
+    if (!eliminandoId) return;
+    try {
+      const { error } = await supabase.from('directorios_web').delete().eq('id', eliminandoId);
+      if (error) throw error;
+      setDatos(prev => prev.filter(item => item.id !== eliminandoId));
+    } catch (err) { alert(err.message); }
+    finally { setAlertOpen(false); setEliminandoId(null); }
+  };
+
+  // ── Filtering + Pagination ────────────────────────────────────────────────
   const datosFiltrados = datos.filter(item => {
     const q = busqueda.toLowerCase().trim();
     if (!q) return true;
-    return (
-      (item.titulo || '').toLowerCase().includes(q) ||
-      (item.descripcion || '').toLowerCase().includes(q) ||
-      (item.categoria || '').toLowerCase().includes(q) ||
-      (item.url || '').toLowerCase().includes(q)
-    );
+    return (item.titulo||'').toLowerCase().includes(q) || (item.descripcion||'').toLowerCase().includes(q) || (item.categoria||'').toLowerCase().includes(q) || (item.url||'').toLowerCase().includes(q);
   });
 
+  const totalPaginas = Math.max(1, Math.ceil(datosFiltrados.length / PAGE_SIZE));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const datosPagina  = datosFiltrados.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
+
+  // ── Shared style objects ──────────────────────────────────────────────────
+  const card = { background:'#fff', border:'1px solid #f1f5f9', borderRadius:'16px', boxShadow:'0 1px 4px rgba(0,0,0,0.05)' };
+  const btnPrimary = { display:'inline-flex', alignItems:'center', gap:'7px', padding:'10px 18px', borderRadius:'10px', border:'none', background:'#003cc3', color:'#fff', fontSize:'14px', fontWeight:'700', cursor:'pointer' };
+  const btnIcon    = (red) => ({ display:'flex', alignItems:'center', justifyContent:'center', padding:'7px', borderRadius:'8px', border:`1.5px solid ${red ? '#fecdd3' : '#e2e8f0'}`, background: red ? '#fff1f2' : '#f8fafc', color: red ? '#e11d48' : '#374151', cursor:'pointer' });
+  const pageBtn    = (active, disabled) => ({ display:'flex', alignItems:'center', justifyContent:'center', minWidth:'34px', height:'34px', padding:'0 6px', borderRadius:'8px', border:`1.5px solid ${active ? '#003cc3' : '#e2e8f0'}`, background: active ? '#003cc3' : '#fff', color: active ? '#fff' : (disabled ? '#cbd5e1' : '#374151'), fontSize:'13px', fontWeight:'700', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1 });
+
   return (
-    <div className="space-y-6 select-none">
-      
-      {/* Encabezado */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div style={{ display:'flex', flexDirection:'column', gap:'24px', fontFamily:'system-ui,-apple-system,sans-serif', userSelect:'none' }}>
+
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'16px', flexWrap:'wrap' }}>
         <div>
-          <h1 className="text-xl lg:text-3xl font-extrabold tracking-tight">
-            Gestión de Directorio
-          </h1>
-          <p className="text-muted-foreground text-xs lg:text-sm mt-1">
-            Modera, edita y crea registros para la tabla <code className="text-primary font-mono text-[11px] bg-muted px-1.5 py-0.5 rounded">directorios_web</code>.
-          </p>
+          <h1 style={{ fontSize:'26px', fontWeight:'800', color:'#0f172a', letterSpacing:'-0.02em', marginBottom:'6px' }}>Gestión de Directorio</h1>
+          <p style={{ fontSize:'14px', color:'#94a3b8', fontWeight:'500' }}>Modera, edita y crea registros para el directorio de ayuda.</p>
         </div>
-        
-        <Button onClick={abrirModalCrear} className="gap-2">
-          <PlusCircle className="h-4.5 w-4.5" />
-          <span>Crear Registro</span>
-        </Button>
+        <button onClick={abrirModalCrear} style={btnPrimary}
+          onMouseEnter={e => { e.currentTarget.style.background='#0031a6'; }}
+          onMouseLeave={e => { e.currentTarget.style.background='#003cc3'; }}
+        ><IconPlus /> Crear Registro</button>
       </div>
 
-      {/* Controles de filtro y búsqueda */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-card border border-border rounded-xl p-4">
-        {/* Pestañas de Filtro */}
-        <div className="flex bg-muted p-1 rounded-lg border border-border w-full md:w-auto">
-          {[
-            { id: 'todos', label: 'Todos' },
-            { id: 'aprobados', label: 'Aprobados' },
-            { id: 'pendientes', label: 'Pendientes' },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setFiltroAprobado(tab.id)}
-              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all w-full md:w-auto text-center ${
-                filtroAprobado === tab.id
-                  ? 'bg-background text-primary shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tab.label}
-            </button>
+      {/* Filters */}
+      <div style={{ ...card, padding:'14px 18px', display:'flex', alignItems:'center', gap:'12px', flexWrap:'wrap' }}>
+        <div style={{ display:'flex', background:'#f8fafc', border:'1.5px solid #e2e8f0', borderRadius:'10px', padding:'4px', gap:'3px' }}>
+          {[['todos','Todos'],['aprobados','Aprobados'],['pendientes','Pendientes']].map(([id, label]) => (
+            <button key={id} onClick={() => setFiltro(id)} style={{ padding:'5px 12px', borderRadius:'7px', border:'none', fontSize:'13px', fontWeight:'700', cursor:'pointer', background: filtro===id ? '#fff' : 'transparent', color: filtro===id ? '#003cc3' : '#94a3b8', boxShadow: filtro===id ? '0 1px 4px rgba(0,0,0,0.08)' : 'none', transition:'all 0.15s' }}>{label}</button>
           ))}
         </div>
-
-        {/* Buscador */}
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Buscar registro..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="pl-9"
+        <div style={{ flex:1, minWidth:'180px', position:'relative' }}>
+          <span style={{ position:'absolute', left:'11px', top:'50%', transform:'translateY(-50%)', color:'#94a3b8', pointerEvents:'none' }}><IconSearch /></span>
+          <input type="text" placeholder="Buscar por título, URL, categoría..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
+            style={{ width:'100%', height:'38px', paddingLeft:'34px', paddingRight:'12px', borderRadius:'10px', border:'1.5px solid #e2e8f0', background:'#f8fafc', fontSize:'14px', color:'#0f172a', outline:'none', boxSizing:'border-box' }}
+            onFocus={e => { e.target.style.borderColor='#003cc3'; e.target.style.background='#fff'; }}
+            onBlur={e =>  { e.target.style.borderColor='#e2e8f0'; e.target.style.background='#f8fafc'; }}
           />
         </div>
+        <span style={{ fontSize:'12px', color:'#94a3b8', fontWeight:'600', whiteSpace:'nowrap' }}>{datosFiltrados.length} resultado{datosFiltrados.length !== 1 ? 's' : ''}</span>
       </div>
 
-      {/* Contenedor Principal (Tabla) */}
-      <Card>
+      {/* Table */}
+      <div style={card}>
         {cargando ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <RefreshCw className="h-8 w-8 text-primary animate-spin" />
-            <p className="text-muted-foreground text-xs font-semibold">Cargando registros...</p>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'80px', gap:'14px' }}>
+            <IconLoader /><p style={{ fontSize:'13px', color:'#94a3b8', fontWeight:'500' }}>Cargando registros...</p>
           </div>
-        ) : datosFiltrados.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center gap-3">
-            <AlertTriangle className="h-7 w-7 text-muted-foreground animate-bounce" />
-            <p className="text-muted-foreground font-medium text-xs lg:text-sm">No se encontraron registros que coincidan con la búsqueda.</p>
+        ) : datosPagina.length === 0 ? (
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'80px', gap:'12px', textAlign:'center' }}>
+            <p style={{ fontSize:'14px', color:'#94a3b8', fontWeight:'500' }}>No se encontraron registros.</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Registro</TableHead>
-                <TableHead>Categoría</TableHead>
-                <TableHead>Enlace</TableHead>
-                <TableHead className="text-center">Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {datosFiltrados.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="py-3">
-                    <div className="font-bold text-foreground max-w-xs md:max-w-sm truncate">{item.titulo}</div>
-                    <div className="text-muted-foreground text-[11px] max-w-xs md:max-w-sm truncate mt-0.5">{item.descripcion || 'Sin descripción'}</div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="uppercase font-semibold tracking-wide text-[10px]">
-                      {item.categoria}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[150px] truncate">
-                    {item.url ? (
-                      <a 
-                        href={item.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-primary hover:underline inline-flex items-center gap-1"
-                      >
-                        <span className="truncate">{item.url}</span>
-                        <ExternalLink className="h-3 w-3 shrink-0" />
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground font-mono">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <Select
-                        value={item.estado || 'pendiente'}
-                        onValueChange={(val) => handleToggleEstado(item.id, val)}
-                      >
-                        <SelectTrigger className="h-7 text-[10px] uppercase font-bold w-[110px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="aprobado"><span className="text-emerald-600 font-bold uppercase text-[10px]">Aprobado</span></SelectItem>
-                          <SelectItem value="pendiente"><span className="text-amber-600 font-bold uppercase text-[10px]">Pendiente</span></SelectItem>
-                          <SelectItem value="rechazado"><span className="text-rose-600 font-bold uppercase text-[10px]">Rechazado</span></SelectItem>
-                        </SelectContent>
-                      </Select>
-                      
-                      <div className="flex items-center gap-3 mt-1">
-                        <div className="flex items-center gap-1.5" title="Activo (Público)">
-                          <span className="text-[9px] font-bold text-muted-foreground uppercase">Vis</span>
-                          <Switch
-                            checked={item.activo !== false}
-                            onCheckedChange={() => handleToggleBoolean(item.id, 'activo', item.activo !== false)}
-                            className="scale-75 data-[state=checked]:bg-emerald-500"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1.5" title="Destacado">
-                          <span className="text-[9px] font-bold text-muted-foreground uppercase">Dest</span>
-                          <Switch
-                            checked={!!item.destacado}
-                            onCheckedChange={() => handleToggleBoolean(item.id, 'destacado', !!item.destacado)}
-                            className="scale-75 data-[state=checked]:bg-amber-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="inline-flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => abrirModalEditar(item)}
-                        className="h-8 w-8"
-                      >
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => confirmarEliminar(item.id)}
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
-
-      {/* Modal para Crear / Editar */}
-      <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editandoId ? 'Editar Registro' : 'Nuevo Registro de Directorio'}
-            </DialogTitle>
-            <DialogDescription>
-              Completa los datos del recurso web para agregarlo al directorio verificado.
-            </DialogDescription>
-          </DialogHeader>
-
-          {mensajeForm.texto && (
-            <div className="p-3 bg-destructive/10 text-destructive text-xs rounded-lg flex gap-2">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span>{mensajeForm.texto}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Título */}
-            <div className="space-y-1.5">
-              <Label htmlFor="dir-titulo">Título / Nombre</Label>
-              <Input
-                id="dir-titulo"
-                {...register('titulo')}
-                placeholder="Ej: SOS Telecomunicaciones"
-              />
-              {errors.titulo && <p className="text-xs text-destructive">{errors.titulo.message}</p>}
-            </div>
-
-            {/* Categoría */}
-            <div className="space-y-1.5">
-              <Label htmlFor="dir-categoria">Categoría</Label>
-              <Select
-                value={watch('categoria') || ''}
-                onValueChange={(val) => setValue('categoria', val, { shouldValidate: true })}
-              >
-                <SelectTrigger id="dir-categoria">
-                  <SelectValue placeholder="Seleccionar categoría..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoriasDB.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.nombre}>
-                      {cat.nombre}
-                    </SelectItem>
+          <div style={{ overflowX:'auto' }}>
+            <table style={{ width:'100%', borderCollapse:'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom:'1.5px solid #f1f5f9' }}>
+                  {['Registro','Categoría','Enlace','Estado','Vis / Dest','Acciones'].map(h => (
+                    <th key={h} style={{ padding:'12px 16px', textAlign:'left', fontSize:'11px', fontWeight:'700', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', whiteSpace:'nowrap' }}>{h}</th>
                   ))}
-                </SelectContent>
-              </Select>
-              {errors.categoria && <p className="text-xs text-destructive">{errors.categoria.message}</p>}
-            </div>
+                </tr>
+              </thead>
+              <tbody>
+                {datosPagina.map((item, idx) => {
+                  const ec = ESTADO_CFG[item.estado] || ESTADO_CFG.pendiente;
+                  return (
+                    <tr key={item.id} style={{ borderBottom:'1px solid #f8fafc', background: idx%2===0 ? '#fff' : '#fafbfc', transition:'background 0.1s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background='#f0f4ff'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = idx%2===0 ? '#fff' : '#fafbfc'; }}
+                    >
+                      <td style={{ padding:'13px 16px', maxWidth:'240px' }}>
+                        <div style={{ fontSize:'14px', fontWeight:'700', color:'#0f172a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.titulo}</div>
+                        <div style={{ fontSize:'12px', color:'#94a3b8', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:'2px' }}>{item.descripcion || 'Sin descripción'}</div>
+                      </td>
+                      <td style={{ padding:'13px 16px', whiteSpace:'nowrap' }}>
+                        <span style={{ fontSize:'11px', fontWeight:'700', color:'#4f46e5', background:'#eef2ff', padding:'3px 8px', borderRadius:'6px', textTransform:'uppercase', letterSpacing:'0.05em' }}>{item.categoria}</span>
+                      </td>
+                      <td style={{ padding:'13px 16px', maxWidth:'150px' }}>
+                        {item.url ? (
+                          <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:'4px', color:'#003cc3', fontSize:'13px', textDecoration:'none', overflow:'hidden', maxWidth:'130px' }}>
+                            <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.url.replace(/^https?:\/\//, '')}</span>
+                            <IconExternal />
+                          </a>
+                        ) : <span style={{ color:'#cbd5e1' }}>—</span>}
+                      </td>
+                      <td style={{ padding:'13px 16px' }}>
+                        <select value={item.estado || 'pendiente'} onChange={e => handleToggleEstado(item.id, e.target.value)}
+                          style={{ fontSize:'11px', fontWeight:'700', color: ec.color, background: ec.bg, border:'none', borderRadius:'8px', padding:'4px 8px', cursor:'pointer', textTransform:'uppercase', letterSpacing:'0.04em' }}>
+                          <option value="aprobado">Aprobado</option>
+                          <option value="pendiente">Pendiente</option>
+                          <option value="rechazado">Rechazado</option>
+                        </select>
+                      </td>
+                      <td style={{ padding:'13px 16px' }}>
+                        <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                            <span style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', textTransform:'uppercase', width:'24px' }}>Vis</span>
+                            <Toggle checked={item.activo !== false} onChange={() => handleToggleBoolean(item.id, 'activo', item.activo !== false)} activeColor="#16a34a" />
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                            <span style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', textTransform:'uppercase', width:'24px' }}>Dest</span>
+                            <Toggle checked={!!item.destacado} onChange={() => handleToggleBoolean(item.id, 'destacado', !!item.destacado)} activeColor="#d97706" />
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding:'13px 16px' }}>
+                        <div style={{ display:'flex', gap:'7px' }}>
+                          <button onClick={() => abrirModalEditar(item)} style={btnIcon(false)} title="Editar"><IconEdit /></button>
+                          <button onClick={() => { setEliminandoId(item.id); setAlertOpen(true); }} style={btnIcon(true)} title="Eliminar"><IconTrash /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-            {/* URL */}
-            <div className="space-y-1.5">
-              <Label htmlFor="dir-url">URL del Enlace Web</Label>
-              <Input
-                id="dir-url"
-                {...register('url')}
-                placeholder="https://ejemplo.com"
-              />
-              {errors.url && <p className="text-xs text-destructive">{errors.url.message}</p>}
+        {/* ── Pagination ─────────────────────────────────────────────────── */}
+        {!cargando && datosFiltrados.length > PAGE_SIZE && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 20px', borderTop:'1px solid #f1f5f9', flexWrap:'wrap', gap:'10px' }}>
+            <span style={{ fontSize:'12px', color:'#94a3b8', fontWeight:'500' }}>
+              Mostrando {(paginaActual - 1) * PAGE_SIZE + 1}–{Math.min(paginaActual * PAGE_SIZE, datosFiltrados.length)} de {datosFiltrados.length}
+            </span>
+            <div style={{ display:'flex', gap:'6px', alignItems:'center' }}>
+              <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={paginaActual === 1} style={pageBtn(false, paginaActual === 1)}><IconChevLeft /></button>
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                .filter(n => n === 1 || n === totalPaginas || Math.abs(n - paginaActual) <= 1)
+                .reduce((acc, n, i, arr) => {
+                  if (i > 0 && arr[i - 1] !== n - 1) acc.push('...');
+                  acc.push(n);
+                  return acc;
+                }, [])
+                .map((n, i) =>
+                  n === '...'
+                    ? <span key={`e${i}`} style={{ fontSize:'13px', color:'#94a3b8', padding:'0 4px' }}>…</span>
+                    : <button key={n} onClick={() => setPagina(n)} style={pageBtn(n === paginaActual, false)}>{n}</button>
+                )
+              }
+              <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={paginaActual === totalPaginas} style={pageBtn(false, paginaActual === totalPaginas)}><IconChevRight /></button>
             </div>
+          </div>
+        )}
+      </div>
 
-            {/* Descripción */}
-            <div className="space-y-1.5">
-              <Label htmlFor="dir-descripcion">Descripción / Detalles</Label>
-              <Textarea
-                id="dir-descripcion"
-                {...register('descripcion')}
-                placeholder="Explica brevemente de qué trata este enlace web..."
-                rows={3}
-              />
-              {errors.descripcion && <p className="text-xs text-destructive">{errors.descripcion.message}</p>}
+      {/* ── Modal Crear / Editar ──────────────────────────────────────────── */}
+      <Modal open={modalAbierto} onClose={() => setModalAbierto(false)} title={editandoId ? 'Editar Registro' : 'Nuevo Registro'} description="Completa los datos del recurso web.">
+        {mensajeForm && (
+          <div style={{ display:'flex', alignItems:'flex-start', gap:'8px', padding:'11px 14px', background:'#fff1f2', border:'1px solid #fecdd3', borderRadius:'10px', marginBottom:'16px' }}>
+            <span style={{ color:'#e11d48', flexShrink:0, marginTop:'1px' }}><IconAlert /></span>
+            <p style={{ fontSize:'13px', color:'#9f1239', fontWeight:'500' }}>{mensajeForm}</p>
+          </div>
+        )}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {/* Título */}
+          <div style={{ marginBottom:'14px' }}>
+            <label style={fieldLabel}>Título / Nombre</label>
+            <input type="text" placeholder="Ej: SOS Telecomunicaciones" {...register('titulo')} style={inputBase(!!errors.titulo)} {...focusHandlers(errors.titulo)} />
+            {errors.titulo && <p style={{ fontSize:'12px', color:'#e11d48', marginTop:'4px', fontWeight:'500' }}>{errors.titulo.message}</p>}
+          </div>
+          {/* Categoría */}
+          <div style={{ marginBottom:'14px' }}>
+            <label style={fieldLabel}>Categoría</label>
+            <select value={watch('categoria')||''} onChange={e => setValue('categoria', e.target.value, { shouldValidate:true })}
+              style={{ ...inputBase(!!errors.categoria), appearance:'none' }}>
+              <option value="">Seleccionar...</option>
+              {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {errors.categoria && <p style={{ fontSize:'12px', color:'#e11d48', marginTop:'4px', fontWeight:'500' }}>{errors.categoria.message}</p>}
+          </div>
+          {/* URL */}
+          <div style={{ marginBottom:'14px' }}>
+            <label style={fieldLabel}>URL del Enlace</label>
+            <input type="url" placeholder="https://ejemplo.com" {...register('url')} style={inputBase(!!errors.url)} {...focusHandlers(errors.url)} />
+            {errors.url && <p style={{ fontSize:'12px', color:'#e11d48', marginTop:'4px', fontWeight:'500' }}>{errors.url.message}</p>}
+          </div>
+          {/* Descripción */}
+          <div style={{ marginBottom:'16px' }}>
+            <label style={fieldLabel}>Descripción</label>
+            <textarea rows={3} placeholder="Describe brevemente el recurso..." {...register('descripcion')}
+              style={{ ...inputBase(!!errors.descripcion), height:'auto', padding:'10px 12px', resize:'vertical' }}
+              {...focusHandlers(errors.descripcion)} />
+            {errors.descripcion && <p style={{ fontSize:'12px', color:'#e11d48', marginTop:'4px', fontWeight:'500' }}>{errors.descripcion.message}</p>}
+          </div>
+          {/* Config panel */}
+          <div style={{ background:'#f8fafc', border:'1.5px solid #e2e8f0', borderRadius:'12px', padding:'14px', marginBottom:'20px' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'12px' }}>
+              <span style={{ fontSize:'11px', fontWeight:'700', color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em' }}>Estado</span>
+              <select value={estadoValue} onChange={e => setValue('estado', e.target.value)}
+                style={{ fontSize:'12px', fontWeight:'700', padding:'4px 10px', borderRadius:'8px', border:'1.5px solid #e2e8f0', background:'#fff', cursor:'pointer', color: ESTADO_CFG[estadoValue]?.color || '#374151' }}>
+                <option value="aprobado">Aprobado</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="rechazado">Rechazado</option>
+              </select>
             </div>
-
-            {/* Estados y Configuración */}
-            <div className="space-y-3 border border-border rounded-lg p-3 bg-muted/20">
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase text-muted-foreground">Estado de Revisión</p>
-                </div>
-                <Select
-                  value={estadoValue}
-                  onValueChange={(val) => setValue('estado', val)}
-                >
-                  <SelectTrigger className="w-[140px] h-8 text-xs font-bold">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="aprobado">Aprobado</SelectItem>
-                    <SelectItem value="pendiente">Pendiente</SelectItem>
-                    <SelectItem value="rechazado">Rechazado</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div style={{ borderTop:'1px solid #e2e8f0', paddingTop:'12px', display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'10px' }}>
+              <div>
+                <p style={{ fontSize:'12px', fontWeight:'700', color:'#64748b', textTransform:'uppercase', letterSpacing:'0.05em' }}>Activo (Visible)</p>
+                <p style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px' }}>Si está inactivo, no se muestra al público.</p>
               </div>
-
-              <div className="flex items-center justify-between border-t border-border pt-3">
-                <div>
-                  <p className="text-xs font-bold uppercase text-muted-foreground">Activo (Visible)</p>
-                  <p className="text-[10px] text-muted-foreground">Si está inactivo, no se mostrará al público.</p>
-                </div>
-                <Switch
-                  checked={activoValue}
-                  onCheckedChange={(checked) => setValue('activo', checked)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between border-t border-border pt-3">
-                <div>
-                  <p className="text-xs font-bold uppercase text-muted-foreground">Destacado</p>
-                  <p className="text-[10px] text-muted-foreground">Resalta este enlace visualmente.</p>
-                </div>
-                <Switch
-                  checked={destacadoValue}
-                  onCheckedChange={(checked) => setValue('destacado', checked)}
-                />
-              </div>
-
+              <Toggle checked={activoValue} onChange={() => setValue('activo', !activoValue)} activeColor="#16a34a" />
             </div>
+            <div style={{ borderTop:'1px solid #e2e8f0', paddingTop:'12px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div>
+                <p style={{ fontSize:'12px', fontWeight:'700', color:'#64748b', textTransform:'uppercase', letterSpacing:'0.05em' }}>Destacado</p>
+                <p style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px' }}>Resalta este enlace visualmente.</p>
+              </div>
+              <Toggle checked={destacadoValue} onChange={() => setValue('destacado', !destacadoValue)} activeColor="#d97706" />
+            </div>
+          </div>
+          <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+            <button type="button" onClick={() => setModalAbierto(false)} style={{ padding:'10px 18px', borderRadius:'10px', border:'1.5px solid #e2e8f0', background:'#fff', color:'#374151', fontSize:'14px', fontWeight:'600', cursor:'pointer' }}>Cancelar</button>
+            <button type="submit" disabled={isSubmitting} style={{ padding:'10px 20px', borderRadius:'10px', border:'none', background: isSubmitting ? '#6b97e0' : '#003cc3', color:'#fff', fontSize:'14px', fontWeight:'700', cursor: isSubmitting ? 'not-allowed' : 'pointer' }}>
+              {isSubmitting ? 'Guardando...' : 'Guardar Registro'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
-            <DialogFooter className="pt-4 border-t border-border">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setModalAbierto(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Guardar Registro'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* AlertDialog para eliminación */}
-      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Confirmas la eliminación?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará el registro de forma permanente de la base de datos.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setAlertOpen(false)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={ejecutarEliminar} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Eliminar Permanentemente
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
+      <ConfirmDialog open={alertOpen} onCancel={() => { setAlertOpen(false); setEliminandoId(null); }} onConfirm={ejecutarEliminar} />
     </div>
   );
 }
