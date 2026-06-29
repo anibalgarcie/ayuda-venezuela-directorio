@@ -210,7 +210,8 @@ export default function Home() {
     return (
       (item.titulo || item.nombre || '').toLowerCase().includes(q) ||
       (item.descripcion || item.detalles || '').toLowerCase().includes(q) ||
-      (item.categoria || '').toLowerCase().includes(q)
+      (item.categoria || '').toLowerCase().includes(q) ||
+      (item.url || '').toLowerCase().includes(q)
     );
   });
 
