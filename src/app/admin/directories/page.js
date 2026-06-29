@@ -35,7 +35,9 @@ const schema = z.object({
   categoria: z.string().min(1, 'Selecciona una categoría'),
   url: z.string().url('Ingresa una dirección URL válida (ej. https://ejemplo.com)'),
   descripcion: z.string().min(5, 'La descripción debe tener al menos 5 caracteres'),
-  aprobado: z.boolean().default(false)
+  estado: z.enum(['pendiente', 'aprobado', 'rechazado']).default('pendiente'),
+  destacado: z.boolean().default(false),
+  activo: z.boolean().default(true)
 });
 
 export default function AdminDirectories() {
@@ -60,11 +62,15 @@ export default function AdminDirectories() {
       categoria: 'Enlaces y Sitios Web',
       url: '',
       descripcion: '',
-      aprobado: false
+      estado: 'pendiente',
+      destacado: false,
+      activo: true
     }
   });
 
-  const aprobadoValue = watch('aprobado');
+  const estadoValue = watch('estado');
+  const destacadoValue = watch('destacado');
+  const activoValue = watch('activo');
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -88,9 +94,9 @@ export default function AdminDirectories() {
       let query = supabase.from('directorios_web').select('*');
       
       if (filtroAprobado === 'aprobados') {
-        query = query.eq('aprobado', true);
+        query = query.eq('estado', 'aprobado');
       } else if (filtroAprobado === 'pendientes') {
-        query = query.eq('aprobado', false);
+        query = query.eq('estado', 'pendiente');
       }
       
       const { data, error } = await query.order('creado_en', { ascending: false });
@@ -117,17 +123,31 @@ export default function AdminDirectories() {
     cargarDatos();
   }, [cargarDatos]);
 
-  const handleToggleAprobado = async (id, estadoActual) => {
+  const handleToggleEstado = async (id, nuevoEstado) => {
     try {
       const { error } = await supabase
         .from('directorios_web')
-        .update({ aprobado: !estadoActual })
+        .update({ estado: nuevoEstado })
         .eq('id', id);
 
       if (error) throw error;
-      setDatos(prev => prev.map(item => item.id === id ? { ...item, aprobado: !estadoActual } : item));
+      setDatos(prev => prev.map(item => item.id === id ? { ...item, estado: nuevoEstado } : item));
     } catch (error) {
       alert('Error al actualizar estado: ' + error.message);
+    }
+  };
+
+  const handleToggleBoolean = async (id, campo, valorActual) => {
+    try {
+      const { error } = await supabase
+        .from('directorios_web')
+        .update({ [campo]: !valorActual })
+        .eq('id', id);
+
+      if (error) throw error;
+      setDatos(prev => prev.map(item => item.id === id ? { ...item, [campo]: !valorActual } : item));
+    } catch (error) {
+      alert(`Error al actualizar ${campo}: ` + error.message);
     }
   };
 
@@ -320,18 +340,39 @@ export default function AdminDirectories() {
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <Switch
-                        checked={!!item.aprobado}
-                        onCheckedChange={() => handleToggleAprobado(item.id, item.aprobado)}
-                        aria-label={item.aprobado ? 'Desactivar registro' : 'Activar registro'}
-                      />
-                      <Badge
-                        variant={item.aprobado ? 'success' : 'warning'}
-                        className="rounded-full text-[10px]"
+                    <div className="flex flex-col items-center gap-2">
+                      <Select
+                        value={item.estado || 'pendiente'}
+                        onValueChange={(val) => handleToggleEstado(item.id, val)}
                       >
-                        {item.aprobado ? 'Aprobado' : 'Pendiente'}
-                      </Badge>
+                        <SelectTrigger className="h-7 text-[10px] uppercase font-bold w-[110px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="aprobado"><span className="text-emerald-600 font-bold uppercase text-[10px]">Aprobado</span></SelectItem>
+                          <SelectItem value="pendiente"><span className="text-amber-600 font-bold uppercase text-[10px]">Pendiente</span></SelectItem>
+                          <SelectItem value="rechazado"><span className="text-rose-600 font-bold uppercase text-[10px]">Rechazado</span></SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      <div className="flex items-center gap-3 mt-1">
+                        <div className="flex items-center gap-1.5" title="Activo (Público)">
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase">Vis</span>
+                          <Switch
+                            checked={item.activo !== false}
+                            onCheckedChange={() => handleToggleBoolean(item.id, 'activo', item.activo !== false)}
+                            className="scale-75 data-[state=checked]:bg-emerald-500"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5" title="Destacado">
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase">Dest</span>
+                          <Switch
+                            checked={!!item.destacado}
+                            onCheckedChange={() => handleToggleBoolean(item.id, 'destacado', !!item.destacado)}
+                            className="scale-75 data-[state=checked]:bg-amber-500"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
@@ -436,16 +477,50 @@ export default function AdminDirectories() {
               {errors.descripcion && <p className="text-xs text-destructive">{errors.descripcion.message}</p>}
             </div>
 
-            {/* Switch de Aprobación */}
-            <div className="flex items-center justify-between border border-border rounded-lg p-3 bg-muted/30">
-              <div>
-                <p className="text-sm font-semibold">Aprobado / Activo</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Los registros aprobados se muestran al público de inmediato.</p>
+            {/* Estados y Configuración */}
+            <div className="space-y-3 border border-border rounded-lg p-3 bg-muted/20">
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase text-muted-foreground">Estado de Revisión</p>
+                </div>
+                <Select
+                  value={estadoValue}
+                  onValueChange={(val) => setValue('estado', val)}
+                >
+                  <SelectTrigger className="w-[140px] h-8 text-xs font-bold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="aprobado">Aprobado</SelectItem>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="rechazado">Rechazado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Switch
-                checked={aprobadoValue}
-                onCheckedChange={(checked) => setValue('aprobado', checked)}
-              />
+
+              <div className="flex items-center justify-between border-t border-border pt-3">
+                <div>
+                  <p className="text-xs font-bold uppercase text-muted-foreground">Activo (Visible)</p>
+                  <p className="text-[10px] text-muted-foreground">Si está inactivo, no se mostrará al público.</p>
+                </div>
+                <Switch
+                  checked={activoValue}
+                  onCheckedChange={(checked) => setValue('activo', checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between border-t border-border pt-3">
+                <div>
+                  <p className="text-xs font-bold uppercase text-muted-foreground">Destacado</p>
+                  <p className="text-[10px] text-muted-foreground">Resalta este enlace visualmente.</p>
+                </div>
+                <Switch
+                  checked={destacadoValue}
+                  onCheckedChange={(checked) => setValue('destacado', checked)}
+                />
+              </div>
+
             </div>
 
             <DialogFooter className="pt-4 border-t border-border">

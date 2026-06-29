@@ -175,8 +175,16 @@ export default function Home() {
     try {
       // "todos" fetches from the main active table
       const tabla = menuActivo === 'todos' ? 'directorios_web' : menuActivo;
-      const { data, error } = await supabase
-        .from(tabla).select('*').eq('aprobado', true).order('creado_en', { ascending: false });
+      
+      let query = supabase.from(tabla).select('*').order('creado_en', { ascending: false });
+      
+      if (tabla === 'directorios_web') {
+        query = query.eq('estado', 'aprobado').eq('activo', true);
+      } else {
+        query = query.eq('aprobado', true);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       setDatos(data || []);
 
@@ -263,7 +271,8 @@ export default function Home() {
     try {
       const { error } = await supabase.from('directorios_web').insert([{
         titulo: formulario.titulo, url: formulario.url,
-        descripcion: formulario.descripcion, categoria: formulario.categoria || 'General', aprobado: false,
+        descripcion: formulario.descripcion, categoria: formulario.categoria || 'General', 
+        estado: 'pendiente', destacado: false, activo: false,
       }]);
       if (error) throw error;
       setNotificacion({ tipo: 'exito', texto: t.exito });
@@ -518,10 +527,28 @@ export default function Home() {
             </p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18 }}>
-            {datosFiltrados.map((item, i) => {
-              const { Icon, bg, color } = getCategoryStyle(item.categoria);
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
+            {categoriasUnicas.filter(cat => datosFiltrados.some(d => d.categoria === cat)).map(cat => {
+              const items = datosFiltrados.filter(d => d.categoria === cat);
               return (
+                <section key={cat} className="fade-in-up">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid #e5e5ea' }}>
+                    {(() => {
+                      const { Icon, color, bg } = getCategoryStyle(cat);
+                      return (
+                        <>
+                          <div style={{ background: bg, color: color, padding: 8, borderRadius: 10 }}>
+                            <Icon size={20} />
+                          </div>
+                          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1d1d1f', letterSpacing: '-0.02em' }}>{cat}</h2>
+                        </>
+                      );
+                    })()}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18 }}>
+                    {items.map((item, i) => {
+                      const { Icon, bg, color } = getCategoryStyle(item.categoria);
+                      return (
                 <article
                   key={item.id}
                   className="apple-card fade-in-up"
@@ -555,29 +582,15 @@ export default function Home() {
                         </span>
                       </div>
                     )}
-                    {item.estado === 'aprobado' && (
-                      <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        background: 'rgba(0,60,195,0.10)',
-                        border: '1px solid rgba(0,60,195,0.25)',
-                        borderRadius: 9999, padding: '3px 9px',
-                      }}>
-                        <CheckCircle2 size={11} color="#003cc3" strokeWidth={2.5} />
-                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#003cc3' }}>
-                          Aprobado
-                        </span>
-                      </div>
-                    )}
-                    {item.estado === 'pendiente' && (
+                    {item.destacado && (
                       <div style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4,
                         background: 'rgba(255,149,0,0.10)',
-                        border: '1px solid rgba(255,149,0,0.25)',
+                        border: '1px solid rgba(255,149,0,0.4)',
                         borderRadius: 9999, padding: '3px 9px',
                       }}>
-                        <CheckCircle2 size={11} color="#ff9500" strokeWidth={2.5} />
                         <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ff9500' }}>
-                          Pendiente
+                          ★ Destacado
                         </span>
                       </div>
                     )}
@@ -651,6 +664,10 @@ export default function Home() {
                     </button>
                   )}
                 </article>
+              );
+            })}
+                  </div>
+                </section>
               );
             })}
           </div>
